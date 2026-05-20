@@ -6,7 +6,7 @@
 
 ## Em Andamento
 
-_(nada no momento — Fase 0 fechada em 2026-05-20, aguardando início da Fase 1)_
+_(nada no momento — Fase 0 (`v0.1.0`) e rebrand Oui Chef → Ranggo (`v0.1.1`) fechados em 2026-05-20, aguardando início da Fase 1)_
 
 ---
 
@@ -14,15 +14,17 @@ _(nada no momento — Fase 0 fechada em 2026-05-20, aguardando início da Fase 1
 
 ### Fase 1 — Autenticação (P0)
 
-- [ ] (P0) Adicionar bcrypt ao `AuthService` (criação de hash e verificação)
-- [ ] (P0) `src/repositories/usuario_repository.py` e `src/repositories/perfil_repository.py`
-- [ ] (P0) `src/services/auth_service.py` com login/logout e gestão de sessão em memória
-- [ ] (P0) Model `Permissao` populado via seed (códigos `aplicar_desconto`, `cancelar_venda`, `editar_cadastros`, etc.)
-- [ ] (P0) Seed do usuário Admin inicial (interativo no primeiro boot ou via constante de config)
+- [ ] (P0) `src/repositories/usuario_repository.py` e `src/repositories/perfil_repository.py` no padrão `listar/buscar_por_id/criar/atualizar/deletar`
+- [ ] (P0) `src/services/auth_service.py` com bcrypt (hash/verify), login/logout e gestão de sessão em memória
+- [ ] (P0) Seed do model `Permissao` com códigos iniciais (`aplicar_desconto`, `cancelar_venda`, `editar_cadastros`, etc.) + usuário Admin inicial
 - [ ] (P0) Tela de Login (`src/ui/views/login_view.py`) — referência `prototipos/01-login.png`
-- [ ] (P0) Sistema de roteamento simples no shell (mostrar login vs. shell autenticado)
-- [ ] (P0) Conectar item ativo da sidebar à view ativa
-- [ ] (P0) Substituir mock "Usuário Padrão / Sem login" pelo usuário da sessão real
+- [ ] (P0) Roteamento simples no shell (login vs. shell autenticado) + conectar item ativo da sidebar à view ativa
+- [ ] (P0) Substituir mock "Usuário Padrão / Sem login" no topbar pelo usuário da sessão real
+
+### Débitos técnicos da Fase 0 (tratar antes de fechar Fase 1)
+
+- [ ] Limpeza de warnings de lint Markdown em `CLAUDE.md` e `CHANGELOG.md`
+- [ ] Substituir ícone placeholder `ft.Icons.RESTAURANT` por logo SVG de talheres cruzados em `assets/`
 
 ### Fase 2 — Cadastros (P1)
 
@@ -53,16 +55,23 @@ _(nada no momento — Fase 0 fechada em 2026-05-20, aguardando início da Fase 1
 - [ ] (P2) Relatórios gerenciais (dashboard — referência `prototipos/02-dashboard.png`)
 - [ ] (P2) Integração NFC-e via ACBrLibPython
 
-### Débitos técnicos da Fase 0 (a tratar antes de fechar Fase 1)
-
-- [ ] Limpeza de warnings de lint Markdown em `CLAUDE.md` e `CHANGELOG.md` (combinada com o usuário)
-- [ ] Substituir ícone placeholder `ft.Icons.RESTAURANT` por logo SVG de talheres cruzados em `assets/`
-
 ---
 
 ## Concluído
 
+### Rebrand Oui Chef → Ranggo + correção do zumbi Flet (2026-05-20)
+
+**Tag:** `v0.1.1`
+
+- [x] Rebrand completo em 4 commits: docs `.md`, refactor de código+assets, rename físico da pasta (`oui_cheff/` → `ranggo/`, commit `9eb1ded`), docs Flet API migrations
+- [x] Logo SVG laranja real adicionada em `assets/logo/` e plugada no shell (`page.window.icon` + `ft.Image` na sidebar)
+- [x] Renomeação `OuiChefError` → `RanggoError` em `src/utils/exceptions.py` (classe + roteiro futuro)
+- [x] Diagnóstico do bug "Working..." infinito: era processo zumbi `flet.exe` de smoke tests anteriores, não bug de código
+- [x] Regra de cleanup de zumbis Flet documentada no `CLAUDE.md` (Stop-Process + diagnóstico via Get-Process)
+
 ### Fase 0 — Fundação (2026-05-20)
+
+**Tag:** `v0.1.0`
 
 - [x] Documentação inicial: `PROJETO.md`, `CLAUDE.md`, `CHANGELOG.md`
 - [x] Stack definida e fixada: Python 3.12, Flet 0.85.1, SQLAlchemy 2.0.49, bcrypt 4.3.0, python-escpos 3.1
