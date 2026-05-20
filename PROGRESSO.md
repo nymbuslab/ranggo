@@ -1,6 +1,8 @@
 # Progresso do Projeto
 
-> Detalhes de implementação ficam em `CLAUDE.md`. Aqui só etapas: feito / fazendo / a fazer.
+> **Visão estratégica do projeto (fases, dependências, débitos):** `ROADMAP.md`.
+> **Padrões técnicos:** `CLAUDE.md`.
+> Aqui só o que está sendo feito agora — próximas 1-3 semanas.
 
 ---
 

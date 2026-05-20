@@ -342,40 +342,17 @@ movimentacao_estoque ──→ produtos / insumos
 
 ## 7. Roadmap
 
-### Fase 0 — Fundação
-Setup do projeto, estrutura de pastas, conexão SQLAlchemy, criação de tabelas, tema Flet (com as cores e fontes definidas em §3), shell da aplicação.
+O roadmap detalhado das fases está em `ROADMAP.md`, que é a fonte única de verdade sobre o futuro do projeto. Resumo:
 
-### Fase 1 — Autenticação
-Login (baseado em `prototipos/01-login.png`), hash de senha, sessão, CRUD de usuários, perfis e permissões, middleware de acesso.
+- **Fase 0** — Fundação ✅
+- **Fase 1** — Autenticação 🔄
+- **Fase 2** — Cadastros 🔜
+- **Fase 3** — Venda Balcão + Caixa Operacional 🔜
+- **Fase 4** — Comandas e Mesas 🔜
+- **Fase 5** — Delivery, Relatórios, NFC-e, Segurança expandida 🔜
+- **Fase 6** — Pós-MVP (comissão, melhorias orgânicas) 🔜
 
-### Fase 2 — Cadastros
-Categorias → Unidades → Produtos → Insumos → Pratos → Ficha Técnica → Clientes → Fornecedores. Listagens baseadas em `prototipos/03-listagem-cadastro.png` e formulários em `prototipos/04-formulario-cadastro.png`. Ficha técnica baseada em `prototipos/05-ficha-tecnica.png`.
-
-### Fase 3 — MVP Venda Balcão + Caixa Operacional
-PDV (baseado em `prototipos/06-pdv.png`), carrinho, formas de pagamento (modal em `prototipos/07-modal-checkout.png`), fechamento com numeração sequencial de venda, impressão de tickets de cozinha/bar, baixa de estoque, desconto manual.
-
-**Inclui o conceito de Caixa Operacional**:
-
-- Tabela `caixas` + estados expandidos em `vendas`.
-- Tela de Abertura de Caixa (valor inicial em dinheiro).
-- Tela de Fechamento de Caixa (resumo + valor real contado + cálculo de divergência + observação obrigatória se quebra).
-- Tela de Sangria/Suprimento durante o turno.
-- Fluxo de bloqueio de troca de operador (R2) + exceção Admin para fechamento forçado (R3).
-- Cancelamento de venda finalizada (R5) — apenas Admin, com motivo.
-- Controle de troco (R7) em vendas em dinheiro.
-
-### Fase 4 — Comandas e Mesas
-Cadastro de mesas, abertura/fechamento de comanda com numeração sequencial, transferência, divisão de conta. **Campo `comandas.garcom_id`** registrado (provisão para Fase 6+).
-
-### Fase 5 — Delivery, Relatórios, NFC-e, Segurança expandida
-Fluxo de delivery, relatórios gerenciais, emissão de NFC-e via ACBr.
-
-**Segurança expandida**: política de senha forte, bloqueio após N tentativas falhadas, troca de senha obrigatória no primeiro login, 2FA opcional para Admin.
-
-### Fase 6 — Pós-MVP (a definir conforme operação real)
-
-- **Comissão de garçom**: regras a serem capturadas após operação real (ver §4.8).
-- Outras melhorias e ajustes orgânicos.
+Estado atual, dependências, critérios de "pronto" e decisões em aberto: ver `ROADMAP.md`.
 
 ---
 

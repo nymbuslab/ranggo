@@ -22,6 +22,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Bug do "Working..." na segunda execução: resolvido na raiz com handler de `page.window.on_event` (CLOSE) chamando `engine.dispose()` + `page.window.destroy()` + `os._exit(0)`, mais `atexit.register(engine.dispose)` em `main.py` como rede de segurança. Substitui a regra antiga de cleanup manual de `flet.exe` no `CLAUDE.md`. Validado em 5 ciclos consecutivos sem espera (média de 1.21s por janela vs ~5-10s antes).
 
 ### Added
+- `ROADMAP.md` criado como fonte única de futuro estratégico do projeto. Documenta as 6 fases com objetivo de negócio, escopo, decisões cravadas, decisões em aberto, critérios de "pronto" e débitos previstos.
 - **Documentação de Caixa Operacional** (§4.7): regras de abertura/fechamento, vinculação `vendas.caixa_id` na finalização, sangria, bloqueio de troca de operador com exceção Admin, sem fiado, cancelamento por Admin com motivo, controle de troco, quebra de caixa com observação obrigatória.
 - **Documentação de Comissão de garçom** (§4.8): débito técnico Fase 6+, provisão `comandas.garcom_id` nullable desde Fase 4.
 - Modelo de dados expandido: tabelas `caixas` e `movimentacao_caixa`. Campos novos em `vendas` (caixa_id, valor_pago, troco, status expandido, motivo_cancelamento, finalizada_em) e `comandas` (garcom_id).

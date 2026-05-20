@@ -9,9 +9,21 @@
 Este é o **Ranggo**, sistema de PDV para restaurante, single-machine, Windows.
 
 **Leitura obrigatória antes de qualquer alteração:**
+
 - `PROJETO.md` (regras de negócio e identidade visual)
+- `ROADMAP.md` (fase atual e dependências futuras)
 - `CHANGELOG.md` (histórico recente, pra entender o que acabou de ser feito)
 - Imagens em `prototipos/` quando a tarefa envolver UI
+
+**Divisão de responsabilidade entre arquivos `.md`:**
+
+| Arquivo | Responde | Horizonte |
+| --- | --- | --- |
+| `PROJETO.md` | O QUE o sistema é e COMO funciona (regras) | Atemporal |
+| `CLAUDE.md` | COMO codar no projeto (padrões técnicos) | Atemporal |
+| `ROADMAP.md` | QUANDO e POR QUE cada fase, dependências, débitos | Futuro |
+| `PROGRESSO.md` | O que está sendo feito AGORA | Próximas 1-3 semanas |
+| `CHANGELOG.md` | O que JÁ foi feito | Passado |
 
 ---
 
