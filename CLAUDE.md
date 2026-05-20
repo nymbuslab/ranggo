@@ -146,6 +146,31 @@ session.execute(text("PRAGMA foreign_keys"))
 
 Para queries ORM normais, continue usando `select(Model)` — só raw SQL precisa do `text()`.
 
+### Flet 0.85.1 — API atual (NÃO usar padrões antigos)
+
+A documentação espalhada na web (e até parte do Context7) ainda mostra exemplos com a API antiga do Flet. Estas migrações foram descobertas no smoke test da Fase 0 ao quebrar em runtime — toda view nova **deve** usar a coluna "Atual":
+
+| Antigo (NÃO usar) | Atual (USAR) | Contexto |
+|---|---|---|
+| `ft.app(target=...)` | `ft.run(main=...)` | Entry point do app (`ft.app` deprecada desde 0.80.0) |
+| `ft.Icon(name=...)` | `ft.Icon(icon=...)` | Parâmetro do widget `Icon` |
+| `ft.ElevatedButton(text="X")` | `ft.ElevatedButton(content="X")` | Conteúdo do botão (vale para todos os botões: `FilledButton`, `OutlinedButton`, `TextButton`, etc.) |
+| `ft.padding.symmetric(...)` / `ft.padding.only(...)` / `ft.padding.all(...)` | `ft.Padding.symmetric(...)` / `ft.Padding.only(...)` / `ft.Padding.all(...)` | `ft.Padding` agora é **classe** com classmethods, não módulo de funções soltas |
+| `ft.border.only(...)` / `ft.border.all(...)` / `ft.border.symmetric(...)` | `ft.Border.only(...)` / `ft.Border.all(...)` / `ft.Border.symmetric(...)` | `ft.Border` agora é **classe** com classmethods |
+| `ft.alignment.center` (e demais minúsculos) | `ft.Alignment.CENTER` (enum em `MAIÚSCULAS`) | Alinhamentos viraram enum |
+| `ft.icons.X` (minúsculo) | `ft.Icons.X` (maiúsculo) | Enum padronizado |
+| `ft.colors.X` (minúsculo) | `ft.Colors.X` (maiúsculo) | Enum padronizado |
+
+**Tipo de ícone:** o valor de `ft.Icons.X` é `ft.IconData` (IntEnum), **não** `str`. Em assinaturas use `icone: ft.IconData`.
+
+**Antes de codar qualquer view nova:** consultar Context7 com query `"flet 0.85 [widget]"` (ex.: `"flet 0.85 TextField"`, `"flet 0.85 DataTable"`) e validar a API exata via probe direto no REPL da venv, porque mesmo o Context7 pode estar parcialmente desatualizado. Padrão recomendado:
+
+```bash
+.\.venv\Scripts\python.exe -c "import flet as ft, inspect; print(list(inspect.signature(ft.TextField).parameters.keys())[:10])"
+```
+
+Se uma view quebrar com `TypeError: unexpected keyword argument` ou `AttributeError: module 'flet.X' has no attribute 'Y'`, é quase certo padrão antigo — consultar a tabela acima ou fazer o probe.
+
 ### Repositórios — assinatura padrão
 
 ```python

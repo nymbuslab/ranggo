@@ -18,6 +18,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+### Changed (ponte documental Fase 0 → Fase 1)
+- `CLAUDE.md`: nova subseção **"Flet 0.85.1 — API atual"** dentro de "Padrões de código", com tabela das 6 migrações descobertas no smoke test da Fase 0 (`ft.app` → `ft.run`, `Icon(name=)` → `Icon(icon=)`, `ElevatedButton(text=)` → `ElevatedButton(content=)`, `padding/border/alignment` viraram classes em vez de módulos, ícones/cores em maiúsculas).
+- `CLAUDE.md`: tipo de ícone documentado como `ft.IconData` (IntEnum), não `str`.
+- `CLAUDE.md`: recomendação de validar API via Context7 + probe REPL antes de codar qualquer view nova.
+
 ---
 
 ## [0.1.0] - 2026-05-20 — Fase 0: Fundação
