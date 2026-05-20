@@ -8,7 +8,16 @@
 
 ## Em Andamento
 
-_(nada no momento — Fase 0 (`v0.1.0`) e rebrand Oui Chef → Ranggo (`v0.1.1`) fechados em 2026-05-20, aguardando início da Fase 1)_
+**Checkpoint salvo em 2026-05-20 12:15**
+
+### Feito nesta sessão
+- Higiene do PROGRESSO.md: removidas menções obsoletas ao rename da pasta `oui_cheff/`, checkpoint atualizado com tags `v0.1.0` + `v0.1.1` (commit `1e833cf`).
+- Documentação de **Caixa Operacional** (§4.7 com R1–R8), **Comissão de Garçom** débito Fase 6+ (§4.8), modelo de dados expandido (tabelas `caixas` + `movimentacao_caixa`, campos novos em `vendas` e `comandas`), roadmap, glossário (commit `e914b82`).
+- **Fix do bug "Working..."** resolvido na raiz: handler `page.window.on_event` (CLOSE) com `engine.dispose()` + `page.window.destroy()` + `os._exit(0)` em `src/ui/app.py`; `atexit.register(engine.dispose)` em `main.py`. Validado em 5 ciclos consecutivos sem espera (média 1.21s vs ~5-10s antes). Regra antiga de cleanup manual removida do `CLAUDE.md` (commit `3e7594d`).
+- Criação do **`ROADMAP.md`** como fonte única de futuro estratégico (309 linhas, 6 fases com objetivo/escopo/decisões cravadas/critérios de pronto/débitos). `PROJETO.md §7` enxugado para resumo + link. `CLAUDE.md` ganha `ROADMAP.md` na leitura obrigatória + tabela de divisão de responsabilidade entre `.md`s. `PROGRESSO.md` com nova nota de cabeçalho (commit `487036d`).
+
+### Próximo passo
+- **Passo 1 de 10 da Fase 1**: criar `src/repositories/usuario_repository.py` e `src/repositories/perfil_repository.py` no padrão `listar/buscar_por_id/criar/atualizar/deletar` (assinatura do `CLAUDE.md`), com métodos extras `UsuarioRepository.buscar_por_login(login: str)` e `PerfilRepository.buscar_por_nome(nome: str)`. Zero código de UI ou service nesta etapa.
 
 ---
 
