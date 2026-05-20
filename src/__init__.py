@@ -1,1 +1,1 @@
-"""Pacote raiz do código-fonte do Oui Chef."""
+"""Pacote raiz do código-fonte do Ranggo."""

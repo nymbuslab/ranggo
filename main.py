@@ -1,4 +1,4 @@
-"""Entry point real do Oui Chef.
+"""Entry point real do Ranggo.
 
 Único módulo responsável pelo *bootstrap* do aplicativo:
 
@@ -58,7 +58,7 @@ def bootstrap() -> None:
     traceback em ``stderr``.
     """
     try:
-        print("Iniciando Oui Chef...")
+        print("Iniciando Ranggo...")
         init_db()
         popular_dados_iniciais()
         print("UI iniciada.")

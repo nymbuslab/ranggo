@@ -1,6 +1,6 @@
 """Model :class:`Perfil` — agrupa permissões concedidas a usuários.
 
-No Oui Chef existem três perfis padrão (criados via seed na Fase 1):
+No Ranggo existem três perfis padrão (criados via seed na Fase 1):
 ``Admin``, ``Gerente`` e ``Caixa``. Cada perfil reúne um conjunto de
 :class:`Permissao` (ex.: ``aplicar_desconto``, ``editar_cadastros``)
 através da tabela de associação ``perfil_permissoes``.

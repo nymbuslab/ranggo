@@ -1,4 +1,4 @@
-"""População inicial idempotente do banco do Oui Chef.
+"""População inicial idempotente do banco do Ranggo.
 
 Executada no startup pelo ``main.py`` logo depois de :func:`init_db`.
 Cada função de seed verifica o que **já existe** antes de inserir, de

@@ -36,7 +36,7 @@ _ITENS_MENU: list[tuple[str, ft.IconData]] = [
 
 
 def main(page: ft.Page) -> None:
-    """Ponto de entrada da UI do Oui Chef.
+    """Ponto de entrada da UI do Ranggo.
 
     Aplica tema, configura a janela e adiciona o shell visual à página.
     Chamada por ``ft.app(target=main)`` no ``main.py``.
@@ -45,7 +45,7 @@ def main(page: ft.Page) -> None:
         page: Página fornecida pelo runtime do Flet.
     """
     # --- Tema e configuração de janela ---
-    page.title = "Oui Chef"
+    page.title = "Ranggo"
     page.theme = theme.build_flet_theme()
     page.theme_mode = ft.ThemeMode.LIGHT
     page.bgcolor = theme.COR_CINZA_100
@@ -55,6 +55,8 @@ def main(page: ft.Page) -> None:
     page.window.min_width = 1280
     page.window.min_height = 720
     page.window.maximized = True
+    # Caminho relativo a assets_dir (definido em main.py).
+    page.window.icon = "logo/logo.ico"
 
     # --- Shell visual ---
     shell = ft.Row(
@@ -83,17 +85,16 @@ def main(page: ft.Page) -> None:
 def _build_sidebar() -> ft.Container:
     """Constrói a sidebar fixa de 240px (fundo preto)."""
     # Logo: ícone de talheres + wordmark.
-    # TODO Fase 0 passo 11: substituir o ícone abaixo por logo SVG bundled
-    # de talheres cruzados (garfo + colher) em assets/.
+    # Caminho de imagem é relativo a assets_dir (definido em main.py).
     logo = ft.Row(
         controls=[
-            ft.Icon(
-                icon=ft.Icons.RESTAURANT,
-                color=theme.COR_PRIMARIA,
-                size=28,
+            ft.Image(
+                src="logo/logo.svg",
+                width=28,
+                height=28,
             ),
             ft.Text(
-                "Oui Chef",
+                "Ranggo",
                 color=theme.COR_TERCIARIA,
                 size=20,
                 weight=ft.FontWeight.W_600,  # SemiBold
@@ -334,7 +335,7 @@ def _build_conteudo() -> ft.Container:
                 ),
                 ft.Container(height=16),
                 ft.Text(
-                    "Oui Chef · v0.0.1 (Fase 0)",
+                    "Ranggo · v0.1.0 (Fase 0)",
                     size=theme.FONTE_TAMANHO_HELPER,
                     color=theme.COR_CINZA_400,
                 ),

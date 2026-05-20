@@ -1,4 +1,4 @@
-"""Conexão SQLite, sessions e inicialização do banco do Oui Chef.
+"""Conexão SQLite, sessions e inicialização do banco do Ranggo.
 
 Ponto único de configuração da camada de persistência:
 
@@ -48,7 +48,7 @@ import config
 
 
 # URL de conexão no formato esperado pelo SQLAlchemy.
-# 3 barras + path relativo (ex.: "sqlite:///data/ouichef.db").
+# 3 barras + path relativo (ex.: "sqlite:///data/ranggo.db").
 _DB_URL = f"sqlite:///{config.DB_PATH}"
 
 
@@ -111,7 +111,7 @@ def get_session() -> Iterator[Session]:
 
 
 def init_db() -> None:
-    """Cria as tabelas do Oui Chef no banco configurado.
+    """Cria as tabelas do Ranggo no banco configurado.
 
     Operação **idempotente**: :meth:`MetaData.create_all` só cria as
     tabelas que ainda não existem; bancos já populados ficam intactos.

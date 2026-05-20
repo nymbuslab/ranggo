@@ -1,4 +1,4 @@
-"""Identidade visual do Oui Chef — fonte única de verdade no código.
+"""Identidade visual do Ranggo — fonte única de verdade no código.
 
 Este módulo espelha **exatamente** ``PROJETO.md §3`` (Identidade Visual):
 cores, tipografia, espaçamento e forma. Qualquer divergência entre
@@ -28,7 +28,7 @@ import flet as ft
 # ---------------------------------------------------------------------------
 
 # Primárias
-COR_PRIMARIA: str = "#FF6600"      # Laranja Oui Chef — CTAs, destaques, ativo
+COR_PRIMARIA: str = "#FF6600"      # Laranja Ranggo — CTAs, destaques, ativo
 COR_SECUNDARIA: str = "#0D0D0D"    # Preto — sidebar, textos principais
 COR_TERCIARIA: str = "#FFFFFF"     # Branco — fundo de conteúdo
 
@@ -104,7 +104,7 @@ def build_flet_theme() -> ft.Theme:
 
     Aplica ``Inter`` como fonte padrão e usa :data:`COR_PRIMARIA` como
     semente do Material 3 — o Flet deriva uma paleta coerente a partir
-    do laranja Oui Chef. ``visual_density`` é ``COMFORTABLE`` para dar
+    do laranja Ranggo. ``visual_density`` é ``COMFORTABLE`` para dar
     respiro adequado em monitores desktop (sem virar interface de tablet).
 
     A fonte ``Inter`` propriamente dita precisa ser registrada em

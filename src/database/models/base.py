@@ -46,7 +46,7 @@ NAMING_CONVENTION: dict[str, str] = {
 
 
 class Base(DeclarativeBase):
-    """Classe base declarativa de todos os models do Oui Chef.
+    """Classe base declarativa de todos os models do Ranggo.
 
     Todos os models persistidos no SQLite devem herdar desta classe
     para compartilhar a mesma :class:`MetaData` — única forma de

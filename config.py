@@ -1,4 +1,4 @@
-"""Configurações globais do Oui Chef.
+"""Configurações globais do Ranggo.
 
 Apenas constantes — sem lógica. Reflete PROJETO.md §8.
 """
@@ -6,7 +6,7 @@ Apenas constantes — sem lógica. Reflete PROJETO.md §8.
 # ---------- Banco de dados ----------
 # Caminho relativo à raiz do projeto. A pasta data/ é versionada (via .gitkeep),
 # mas o arquivo .db NÃO é (ver .gitignore).
-DB_PATH = "data/ouichef.db"
+DB_PATH = "data/ranggo.db"
 
 # ---------- Impressora térmica (ESC/POS) ----------
 # Tipo de conexão da impressora: "usb" | "network" | "serial".
@@ -19,7 +19,7 @@ IMPRESSORA_COLUNAS = 48
 
 # ---------- Dados da empresa ----------
 # Aparecem em cupons, comprovantes e tickets de preparo.
-EMPRESA_NOME = "Oui Chef"
+EMPRESA_NOME = "Ranggo"
 EMPRESA_CNPJ = ""
 EMPRESA_ENDERECO = ""
 
