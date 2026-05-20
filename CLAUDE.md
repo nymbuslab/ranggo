@@ -171,30 +171,34 @@ A documentação espalhada na web (e até parte do Context7) ainda mostra exempl
 
 Se uma view quebrar com `TypeError: unexpected keyword argument` ou `AttributeError: module 'flet.X' has no attribute 'Y'`, é quase certo padrão antigo — consultar a tabela acima ou fazer o probe.
 
-### Flet — processos zumbis em debug
+### Verificação de API do Flet 0.85.1
 
-**Sintoma:** `python main.py` abre janela mas trava em **"Working..."** indefinidamente, mesmo com código que funcionava minutos antes.
+Context7 está desatualizado para Flet (indexa até 0.84.0 e ainda mostra padrões antigos como `page.on_window_event` e `page.window_prevent_close`).
 
-**Causa:** o Flet desktop é um cliente Flutter (`flet.exe`) que vive em processo separado do Python. Quando o Python é interrompido via Ctrl+C, `TaskStop` ou kill abrupto (em vez do `X` da janela), o cliente Flutter fica zumbi. Vários zumbis competindo por recursos fazem novas instâncias travar no splash.
+**Fonte de verdade**: probe direto na venv com:
 
-**Regra obrigatória durante debug iterativo:**
+```python
+import flet as ft
+print(dir(ft.Window))            # atributos de page.window
+print(dir(ft.WindowEvent))       # campos do evento
+print(list(ft.WindowEventType))  # membros do enum
+```
 
-1. **Sempre fechar a janela pelo X** — `Ctrl+C` no terminal é proibido durante desenvolvimento normal.
-2. **Antes de rodar `main.py` em workflow de debug repetido**, limpar zumbis preventivamente:
+Use Context7 como complemento, não como autoridade. Quando houver conflito entre Context7 e probe, probe vence.
 
-   ```powershell
-   Stop-Process -Name flet -Force -ErrorAction SilentlyContinue
-   ```
+### Shutdown limpo (Flet 0.85.1)
 
-3. **Se travar em "Working..."**, diagnosticar:
+O app deve sair imediatamente ao fechar pelo X, sem deixar processo zumbi.
 
-   ```powershell
-   Get-Process | Where-Object { $_.ProcessName -match "^(flet|python)$" } | Format-Table Id, ProcessName, MainWindowTitle -AutoSize
-   ```
+**Implementação obrigatória:**
 
-   Qualquer `flet`/`python` aparecendo sem ter sido iniciado por você é zumbi — mate.
+- `src/ui/app.py`: handler `page.window.on_event` que chama `engine.dispose()` + `page.window.destroy()` + `os._exit(0)`.
+- `main.py`: `atexit.register(engine.dispose)` como rede de segurança (cobre caminhos de saída que não passam pelo handler — exceção no startup, kill externo).
+- Razão de `os._exit(0)` em vez de `sys.exit(0)`: ao fechar pela X, o `ft.run()` demora ~2s para retornar enquanto o subprocesso Flutter (`flet.exe`) desmonta gracefully. Esse delay segura SQLite locks e portas internas — a próxima execução trava em "Working...". `os._exit(0)` força saída imediata, dispensando o cleanup gradual do Flutter.
 
-**Não confundir com erro de código:** se acabou de mudar código e travou no Working, a causa **mais provável** é zumbi, não bug. Limpe processos antes de duvidar do código.
+**Validação:** 5 ciclos `python main.py` → fechar pelo X → `python main.py` sem espera, todos abrindo em < 3 segundos. Se algum falhar, NÃO declarar resolvido — investigar (talvez seja necessário marcar threads do Flet como daemon, ou outro caminho).
+
+**Não fazer:** `Ctrl+C` no terminal durante debug normal. O handler de `CLOSE` cobre o caminho do `X`; `Ctrl+C` mata o Python parent sem disparar o evento, deixando potencial zumbi do `flet.exe`. O `atexit` em `main.py` reduz o risco mas não elimina.
 
 ### Repositórios — assinatura padrão
 

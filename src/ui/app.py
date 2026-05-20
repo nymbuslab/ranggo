@@ -15,8 +15,11 @@ nesta fase. Roteamento e injeção de views entram na Fase 1.
 
 from __future__ import annotations
 
+import os
+
 import flet as ft
 
+from src.database.connection import engine
 from src.ui import theme
 
 
@@ -57,6 +60,24 @@ def main(page: ft.Page) -> None:
     page.window.maximized = True
     # Caminho relativo a assets_dir (definido em main.py).
     page.window.icon = "logo/logo.ico"
+
+    # --- Shutdown limpo ---
+    # Sem isso, ft.run() leva ~2s para retornar após o usuário fechar a janela
+    # porque o subprocesso Flutter (flet.exe) demora a desmontar gracefully.
+    # Durante esse delay, SQLite locks e portas internas ficam presos — a
+    # próxima execução trava em "Working..." enquanto o sistema espera os
+    # recursos liberarem. Forçar saída no evento CLOSE elimina o intervalo.
+    page.window.prevent_close = False
+
+    def _on_window_event(e: ft.WindowEvent) -> None:
+        if e.type == ft.WindowEventType.CLOSE:
+            engine.dispose()
+            page.window.destroy()
+            # os._exit em vez de sys.exit: bypassa qualquer cleanup pendente
+            # do runtime do Flet/Flutter. dispose() acima já liberou o engine.
+            os._exit(0)
+
+    page.window.on_event = _on_window_event
 
     # --- Shell visual ---
     shell = ft.Row(

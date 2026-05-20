@@ -19,14 +19,21 @@ Este é o **único** lugar do projeto que importa ``init_db``,
 permanecem ignorantes sobre o ciclo de vida do app.
 """
 
+import atexit
 import sys
 import traceback
 
 import flet as ft
 
-from src.database.connection import init_db
+from src.database.connection import engine, init_db
 from src.database.seed import popular_dados_iniciais
 from src.ui.app import main as ui_main
+
+
+# Rede de segurança: se o app encerrar por qualquer caminho que não passe pelo
+# handler de CLOSE em src/ui/app.py (ex.: exceção no startup, kill externo),
+# o pool ainda libera o lock do SQLite antes do processo morrer.
+atexit.register(engine.dispose)
 
 
 def _ui_main_com_assets(page: ft.Page) -> None:
