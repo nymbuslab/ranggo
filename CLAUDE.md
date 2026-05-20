@@ -6,7 +6,7 @@
 
 ## Contexto rápido
 
-Este é o **Oui Chef**, sistema de PDV para restaurante, single-machine, Windows.
+Este é o **Ranggo**, sistema de PDV para restaurante, single-machine, Windows.
 
 **Leitura obrigatória antes de qualquer alteração:**
 - `PROJETO.md` (regras de negócio e identidade visual)
@@ -231,7 +231,7 @@ Estas são regras que o Claude Code deve **lembrar sempre** ao implementar featu
 - ❌ Pular camadas (view → repository direto).
 - ❌ Hardcodar valores que deveriam estar em `config.py` (caminho do banco, IDs de impressora, etc.).
 - ❌ Criar tabelas via SQL puro — usar Models do SQLAlchemy.
-- ❌ Commitar o arquivo `data/ouichef.db`.
+- ❌ Commitar o arquivo `data/ranggo.db`.
 - ❌ Implementar mais de uma feature por vez sem o usuário pedir.
 - ❌ Reescrever código existente "para melhorar" sem ser pedido.
 - ❌ Esquecer de atualizar o `CHANGELOG.md` ao concluir uma feature relevante.
@@ -297,7 +297,7 @@ Escopo opcional entre parênteses: `feat(cadastros): adiciona CRUD de categorias
 
 ## Empacotamento final
 
-- **Não usar PyInstaller direto.** Usar `flet pack main.py --name "OuiChef" --icon assets/icon.ico`.
+- **Não usar PyInstaller direto.** Usar `flet pack main.py --name "Ranggo" --icon assets/logo/logo.ico`.
 - Antes de empacotar: rodar o projeto em modo dev, validar, então empacotar.
 - O `.exe` final acompanha a pasta `data/` (ou cria no primeiro uso).
 

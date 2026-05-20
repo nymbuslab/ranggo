@@ -76,7 +76,7 @@ _(nada no momento — Fase 0 fechada em 2026-05-20, aguardando início da Fase 1
 - [x] `requirements.txt` com versões fixadas (`==`)
 - [x] `.gitignore` cobrindo Python, venv, SQLite, Flet build, IDEs, OS
 - [x] `config.py` com `DB_PATH`, impressora, empresa, numeração inicial e `SQL_ECHO`
-- [x] `src/utils/exceptions.py` com `OuiChefError` raiz + roteiro futuro
+- [x] `src/utils/exceptions.py` com `RanggoError` raiz + roteiro futuro
 - [x] `src/database/models/base.py` com `Base(DeclarativeBase)`, naming convention oficial e `__repr_exclude__`
 - [x] Models Fase 0: `Usuario`, `Perfil`, `Permissao`, `perfil_permissoes` (Core Table com ON DELETE CASCADE), `UnidadeMedida`
 - [x] `src/database/connection.py` com `StaticPool`, `check_same_thread=False`, listener `PRAGMA foreign_keys=ON`, `expire_on_commit=False`, `get_session()` e `init_db()` idempotente

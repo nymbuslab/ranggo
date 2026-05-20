@@ -18,6 +18,13 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+### Changed
+- **Rebrand do projeto**: "Oui Chef" → "Ranggo". Toda documentação, código, assets e nomes técnicos atualizados. Identidade visual (cores, tipografia, layout) mantida.
+- Logo SVG real adicionada em `assets/logo/logo.svg` (substituindo placeholder `ft.Icons.RESTAURANT`).
+- Ícone da janela configurado via `assets/logo/logo.ico`.
+- Exceção raiz renomeada: `OuiChefError` → `RanggoError` (em `src/utils/exceptions.py`).
+- Banco de dados: caminho atualizado para `data/ranggo.db` (banco antigo `data/ouichef.db` fica órfão; seed é idempotente e recria o estado em qualquer banco vazio).
+
 ### Changed (ponte documental Fase 0 → Fase 1)
 - `CLAUDE.md`: nova subseção **"Flet 0.85.1 — API atual"** dentro de "Padrões de código", com tabela das 6 migrações descobertas no smoke test da Fase 0 (`ft.app` → `ft.run`, `Icon(name=)` → `Icon(icon=)`, `ElevatedButton(text=)` → `ElevatedButton(content=)`, `padding/border/alignment` viraram classes em vez de módulos, ícones/cores em maiúsculas).
 - `CLAUDE.md`: tipo de ícone documentado como `ft.IconData` (IntEnum), não `str`.

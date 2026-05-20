@@ -1,4 +1,4 @@
-# Oui Chef — Sistema de Vendas para Restaurante
+# Ranggo — Sistema de Vendas para Restaurante
 
 > Documento de referência do projeto. Descreve **o que** o sistema faz e **por quê**. Para padrões técnicos e de código, ver `CLAUDE.md`. Para histórico de implementações, ver `CHANGELOG.md`.
 
@@ -6,7 +6,7 @@
 
 ## 1. Visão Geral
 
-**Oui Chef** é um sistema de PDV (Ponto de Venda) para restaurantes, executado **localmente** em um computador Windows (servidor e cliente na mesma máquina), sem dependência de internet ou nuvem.
+**Ranggo** é um sistema de PDV (Ponto de Venda) para restaurantes, executado **localmente** em um computador Windows (servidor e cliente na mesma máquina), sem dependência de internet ou nuvem.
 
 Inspirado em sistemas como o **Consumer**, foca em três pilares:
 
@@ -67,7 +67,7 @@ Tamanhos padrão:
 ### 3.2 Paleta de Cores
 
 ```
-PRIMÁRIA       #FF6600   Laranja Oui Chef — CTAs, destaques, ativo
+PRIMÁRIA       #FF6600   Laranja Ranggo — CTAs, destaques, ativo
 SECUNDÁRIA     #0D0D0D   Preto — sidebar, textos principais
 TERCIÁRIA      #FFFFFF   Branco — fundo de conteúdo
 
@@ -105,7 +105,7 @@ LARANJA SUAVE  #FFF1E6   Fundo de item ativo na sidebar, badges informativos
 
 ### 3.4 Logotipo
 
-O símbolo do Oui Chef é um **ícone de talheres cruzados** (garfo + colher) na cor laranja primária (#FF6600), acompanhado do wordmark "Oui Chef" em Inter Bold branco (sobre fundo escuro) ou preto (sobre fundo claro).
+O símbolo do Ranggo é um **ícone de talheres cruzados** (garfo + colher) na cor laranja primária (#FF6600), acompanhado do wordmark "Ranggo" em Inter Bold branco (sobre fundo escuro) ou preto (sobre fundo claro).
 
 ### 3.5 Protótipos
 
@@ -296,7 +296,7 @@ Fluxo de delivery, relatórios gerenciais, emissão de NFC-e via ACBr.
 Arquivo `config.py` na raiz centraliza:
 
 ```python
-DB_PATH = "data/ouichef.db"
+DB_PATH = "data/ranggo.db"
 
 # Impressora
 IMPRESSORA_TIPO = "usb"          # "usb" | "network" | "serial"
@@ -305,7 +305,7 @@ IMPRESSORA_PRODUCT_ID = 0x0e15   # TM-T20X
 IMPRESSORA_COLUNAS = 48
 
 # Empresa
-EMPRESA_NOME = "Oui Chef"
+EMPRESA_NOME = "Ranggo"
 EMPRESA_CNPJ = ""
 EMPRESA_ENDERECO = ""
 
