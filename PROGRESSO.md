@@ -36,12 +36,20 @@ _(nada no momento — Fase 0 (`v0.1.0`) e rebrand Oui Chef → Ranggo (`v0.1.1`)
 - [ ] (P1) Cadastro de Clientes (CRUD)
 - [ ] (P1) Cadastro de Fornecedores (CRUD)
 
-### Fase 3 — Venda Balcão (P1)
+### Fase 3 — Venda Balcão + Caixa Operacional (P1)
 
 - [ ] (P1) Tela PDV (`src/ui/views/pdv_view.py`) — referência `prototipos/06-pdv.png`
 - [ ] (P1) Modal de Checkout — referência `prototipos/07-modal-checkout.png`
-- [ ] (P1) `src/services/venda_service.py` com lógica de baixa de estoque atômica
+- [ ] (P1) `src/services/venda_service.py` com lógica de baixa de estoque atômica (vinculação `vendas.caixa_id` na finalização, status expandido aberta/pendente_pagamento/finalizada/cancelada)
 - [ ] (P1) Impressão de comprovante e tickets de cozinha/bar via python-escpos
+- [ ] (P1) Models `Caixa` e `MovimentacaoCaixa` + campos novos em `Venda` (caixa_id, valor_pago, troco, status, motivo_cancelamento, finalizada_em) e `Comanda` (garcom_id)
+- [ ] (P1) Tela de Abertura de Caixa (valor inicial em dinheiro)
+- [ ] (P1) Tela de Fechamento de Caixa (resumo por forma de pagamento + valor real contado + cálculo de divergência + observação obrigatória se quebra — R8)
+- [ ] (P1) Tela de Sangria/Suprimento durante o turno com motivo obrigatório (R6)
+- [ ] (P1) Bloqueio de troca de operador com caixa aberto (R2) + exceção Admin com fechamento forçado auditado em `caixas.fechamento_admin_id` (R3)
+- [ ] (P1) Alerta de pendências (comandas/deliveries em aberto) ao fechar caixa, com confirmação (R1)
+- [ ] (P1) Cancelamento de venda finalizada apenas por Admin, com motivo obrigatório e movimentação reversa de estoque (R5)
+- [ ] (P1) Controle de troco em vendas em dinheiro: `valor_pago` e `troco` persistidos (R7)
 
 ### Fase 4 — Comandas e Mesas (P2)
 

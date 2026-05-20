@@ -180,6 +180,69 @@ A venda suporta **desconto manual** aplicado pelo operador (apenas perfis com pe
 6. Sistema **dá baixa no estoque** (produtos diretamente; pratos via ficha técnica).
 7. Imprime comprovante de venda (opcional).
 
+### 4.7 Caixa Operacional
+
+Para auditoria contábil e rastreabilidade, **toda venda finalizada é vinculada a um caixa** (turno operacional) aberto por um operador.
+
+**Conceito:**
+- **Caixa** = sessão de trabalho no PDV (financeiro), com início (abertura) e fim (fechamento).
+- Apenas **um caixa pode estar aberto por vez** (sistema single-machine).
+- O caixa é o **único ponto de entrada de dinheiro** do restaurante. Todas as frentes operacionais (comanda, balcão, delivery) convergem para o caixa no momento do pagamento.
+
+**Frentes operacionais vs. Caixa:**
+
+```text
+[COMANDA (mesa)]  [BALCÃO (rápido)]  [DELIVERY (telefone)]   ← Frentes de pedido
+       \                |                /                       (múltiplas abertas simultâneas)
+        \               |               /
+         +----------+ + +----------+
+                    ▼
+                [ CAIXA ]   ← Único ponto de pagamento.
+                              Vincula a venda finalizada ao turno aberto.
+```
+
+**Estados da venda:**
+- `aberta` — pedido em construção (comanda em mesa, delivery em rota, balcão sendo montado).
+- `pendente_pagamento` — chegou no caixa, aguarda confirmação.
+- `finalizada` — pagamento confirmado. **Único estado que conta no fechamento de caixa.**
+- `cancelada` — cancelada antes de finalizar OU estornada após (registra motivo).
+
+**Vinculação `vendas.caixa_id`:** a venda nasce **sem caixa** (na frente operacional). Recebe `caixa_id` apenas ao ser finalizada. Comanda aberta no turno A mas paga no turno B vai pro caixa B (operador que efetivamente recebeu o dinheiro).
+
+**Fluxo do caixa:**
+1. **Abertura**: operador faz login → se não há caixa aberto, tela "Abrir Caixa" pede valor inicial em dinheiro (fundo de troco) → caixa criado e vinculado ao usuário.
+2. **Durante o turno**: todas as vendas finalizadas pelo operador acumulam no caixa aberto. Sangrias e estornos também.
+3. **Fechamento**: operador clica "Fechar Caixa" → sistema mostra resumo por forma de pagamento → pede valor real contado em dinheiro → calcula divergência → registra e faz logout.
+4. **Próximo operador**: login → como não há caixa aberto, abre novo caixa.
+
+**Regras de negócio:**
+
+- **R1 — Pendências ao fechar caixa**: se houver comandas, deliveries ou vendas balcão com status `aberta`/`pendente_pagamento`, sistema **alerta** com detalhes (*"Há N comandas (mesa X, mesa Y) e M deliveries (entregador Z). Essas vendas continuarão disponíveis para o próximo operador. Confirmar fechamento?"*) e permite decisão. Se confirmar, fecha caixa; vendas em aberto permanecem disponíveis e serão vinculadas ao próximo caixa que estiver aberto quando finalizadas.
+
+- **R2 — Bloqueio de troca de operador**: se o operador A está com caixa aberto e o operador B (não-Admin) tenta logar, sistema **bloqueia**: *"Caixa aberto pertence a [Nome de A]. Peça que ele feche o caixa antes de continuar."*
+
+- **R3 — Exceção Admin**: se B for Admin, sistema **permite o login** e oferece duas opções: *(a) Forçar fechamento do caixa de [A] e abrir novo caixa em meu nome*; *(b) Cancelar e sair*. Toda forçada é auditada em `caixas.fechamento_admin_id`.
+
+- **R4 — Sem fiado**: toda venda finalizada **obrigatoriamente** teve pagamento confirmado no ato. O sistema **não suporta** "cliente leva agora e paga depois" no MVP.
+
+- **R5 — Cancelamento de venda finalizada**: apenas usuários com perfil **Admin** podem cancelar uma venda já finalizada. Cancelamento exige **motivo obrigatório** registrado em `vendas.motivo_cancelamento`. O cancelamento gera **movimentação reversa de estoque** (devolve insumos/produtos) e contabiliza no fechamento do caixa atual como estorno.
+
+- **R6 — Sangria**: durante o turno, o operador pode retirar dinheiro do caixa (pagar fornecedor, troco emergencial, etc.). Cada sangria exige **motivo obrigatório** e fica registrada em `movimentacao_caixa`. Impacta o cálculo de divergência no fechamento.
+
+- **R7 — Troco em vendas em dinheiro**: vendas com forma de pagamento `dinheiro` registram `valor_pago` (informado pelo operador) e `troco` (calculado: `valor_pago - total`). Ambos persistidos para auditoria.
+
+- **R8 — Quebra de caixa**: divergência negativa (dinheiro físico < esperado) é permitida mas **exige observação obrigatória** em `caixas.observacao` no momento do fechamento.
+
+**Implementação:** o conceito de Caixa entra na **Fase 3** junto com Venda Balcão. Na Fase 1 (Autenticação), o botão "Fechar Caixa" funciona apenas como logout simples (placeholder visual). Estados expandidos de `vendas` e tabela `caixas` são criados na Fase 3.
+
+### 4.8 Comissão de Garçom (débito técnico — Fase 6+)
+
+O sistema deverá, em fase futura, calcular comissão de garçom por venda. As regras concretas serão definidas após 1-2 meses de operação real do MVP, capturando as práticas reais do restaurante (% fixo ou variável, base de cálculo, atribuição em balcão/delivery, forma de pagamento — sangria do caixa ou acumulação mensal).
+
+**Provisão estrutural (Fase 4):** o model `Comanda` já será criado com campo nullable `garcom_id` (FK para `usuarios`), permitindo registrar quem atendeu a mesa sem ainda calcular comissão. Isso evita migration dolorosa quando a Fase 6+ chegar.
+
+Nada de UI relacionada a comissão é construído antes da definição completa das regras.
+
 ---
 
 ## 5. Módulos do Sistema
@@ -236,9 +299,15 @@ produtos ─────→ venda_itens ──┘
 
 vendas ──┬─→ venda_itens
          ├─→ cliente (opcional, obrigatório em delivery)
-         └─→ comanda (opcional)
+         ├─→ comanda (opcional)
+         └─→ caixa (preenchido na finalização)
 
 mesas ──→ comandas ──→ comanda_itens
+usuarios ──→ comandas (garcom_id, nullable — provisão Fase 6+)
+
+caixas ──┬─→ vendas (toda venda finalizada vinculada ao caixa do operador)
+         └─→ movimentacao_caixa (sangria / suprimento)
+usuarios ──→ caixas (operador que abriu + fechamento_admin_id auditado)
 
 movimentacao_estoque ──→ produtos / insumos
                      (registra TODA entrada e saída)
@@ -261,11 +330,13 @@ movimentacao_estoque ──→ produtos / insumos
 | `clientes` | id, nome, telefone, cpf, endereco, bairro, cidade, observacoes |
 | `fornecedores` | id, razao_social, cnpj, telefone, email, endereco |
 | `mesas` | id, numero, capacidade, status |
-| `comandas` | id, **numero** (sequencial), mesa_id, cliente_id, status (aberta/fechada), aberta_em, fechada_em, usuario_id |
+| `caixas` | id, **numero** (sequencial), usuario_id (FK), abertura_em, valor_inicial, fechamento_em (nullable), valor_final_dinheiro (nullable), valor_final_sistema (nullable), divergencia (nullable), observacao (nullable), fechamento_admin_id (FK usuarios, nullable) |
+| `comandas` | id, **numero** (sequencial), mesa_id, cliente_id, garcom_id (FK usuarios, nullable), status (aberta/fechada), aberta_em, fechada_em, usuario_id |
 | `comanda_itens` | id, comanda_id, produto_id/prato_id, quantidade, preco_unitario, observacao |
-| `vendas` | id, **numero** (sequencial), tipo (balcao/comanda/delivery), comanda_id, cliente_id, usuario_id, subtotal, **desconto**, total, forma_pagamento, status, criada_em |
+| `vendas` | id, **numero** (sequencial), caixa_id (FK, nullable — preenchido na finalização), tipo (balcao/comanda/delivery), comanda_id (nullable), cliente_id (nullable), usuario_id (operador), subtotal, **desconto**, total, forma_pagamento, valor_pago (nullable — dinheiro), troco (nullable — dinheiro), status (aberta/pendente_pagamento/finalizada/cancelada), motivo_cancelamento (nullable), criada_em, finalizada_em (nullable) |
 | `venda_itens` | id, venda_id, produto_id/prato_id, quantidade, preco_unitario, subtotal |
 | `movimentacao_estoque` | id, tipo (entrada/saida), produto_id/insumo_id, quantidade, motivo, venda_id, data, usuario_id |
+| `movimentacao_caixa` | id, caixa_id (FK), tipo (sangria/suprimento), valor, motivo, criada_em, usuario_id (FK) |
 
 ---
 
@@ -280,14 +351,31 @@ Login (baseado em `prototipos/01-login.png`), hash de senha, sessão, CRUD de us
 ### Fase 2 — Cadastros
 Categorias → Unidades → Produtos → Insumos → Pratos → Ficha Técnica → Clientes → Fornecedores. Listagens baseadas em `prototipos/03-listagem-cadastro.png` e formulários em `prototipos/04-formulario-cadastro.png`. Ficha técnica baseada em `prototipos/05-ficha-tecnica.png`.
 
-### Fase 3 — MVP Venda Balcão
+### Fase 3 — MVP Venda Balcão + Caixa Operacional
 PDV (baseado em `prototipos/06-pdv.png`), carrinho, formas de pagamento (modal em `prototipos/07-modal-checkout.png`), fechamento com numeração sequencial de venda, impressão de tickets de cozinha/bar, baixa de estoque, desconto manual.
 
-### Fase 4 — Comandas e Mesas
-Cadastro de mesas, abertura/fechamento de comanda com numeração sequencial, transferência, divisão de conta.
+**Inclui o conceito de Caixa Operacional**:
 
-### Fase 5 — Delivery, Relatórios, NFC-e
+- Tabela `caixas` + estados expandidos em `vendas`.
+- Tela de Abertura de Caixa (valor inicial em dinheiro).
+- Tela de Fechamento de Caixa (resumo + valor real contado + cálculo de divergência + observação obrigatória se quebra).
+- Tela de Sangria/Suprimento durante o turno.
+- Fluxo de bloqueio de troca de operador (R2) + exceção Admin para fechamento forçado (R3).
+- Cancelamento de venda finalizada (R5) — apenas Admin, com motivo.
+- Controle de troco (R7) em vendas em dinheiro.
+
+### Fase 4 — Comandas e Mesas
+Cadastro de mesas, abertura/fechamento de comanda com numeração sequencial, transferência, divisão de conta. **Campo `comandas.garcom_id`** registrado (provisão para Fase 6+).
+
+### Fase 5 — Delivery, Relatórios, NFC-e, Segurança expandida
 Fluxo de delivery, relatórios gerenciais, emissão de NFC-e via ACBr.
+
+**Segurança expandida**: política de senha forte, bloqueio após N tentativas falhadas, troca de senha obrigatória no primeiro login, 2FA opcional para Admin.
+
+### Fase 6 — Pós-MVP (a definir conforme operação real)
+
+- **Comissão de garçom**: regras a serem capturadas após operação real (ver §4.8).
+- Outras melhorias e ajustes orgânicos.
 
 ---
 
@@ -325,3 +413,9 @@ VENDA_NUMERO_INICIAL = 1
 - **NFC-e**: Nota Fiscal de Consumidor Eletrônica.
 - **Destino de preparo**: para onde o item vai depois do pedido (cozinha, bar, ou direto pro cliente).
 - **Estoque "Ilimitado"**: rótulo usado em listagens para pratos, que não têm estoque próprio (controle real é via insumos da ficha técnica).
+- **Caixa Operacional**: turno de trabalho de um operador no PDV, com abertura (valor inicial) e fechamento (cálculo de divergência). Toda venda finalizada é vinculada a um caixa.
+- **Sangria**: retirada de dinheiro do caixa durante o turno, com motivo registrado.
+- **Suprimento**: entrada de dinheiro no caixa durante o turno (ex.: reforço de troco), com motivo registrado.
+- **Quebra de caixa**: divergência negativa entre dinheiro físico contado e valor esperado pelo sistema no fechamento.
+- **Fechamento administrativo**: fechamento forçado de caixa alheio por Admin, registrado em auditoria.
+- **Pendência**: comanda aberta, delivery em rota ou venda balcão em construção — não impede fechamento de caixa, mas gera alerta.

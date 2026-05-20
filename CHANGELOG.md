@@ -18,6 +18,13 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+### Added
+- **Documentação de Caixa Operacional** (§4.7): regras de abertura/fechamento, vinculação `vendas.caixa_id` na finalização, sangria, bloqueio de troca de operador com exceção Admin, sem fiado, cancelamento por Admin com motivo, controle de troco, quebra de caixa com observação obrigatória.
+- **Documentação de Comissão de garçom** (§4.8): débito técnico Fase 6+, provisão `comandas.garcom_id` nullable desde Fase 4.
+- Modelo de dados expandido: tabelas `caixas` e `movimentacao_caixa`. Campos novos em `vendas` (caixa_id, valor_pago, troco, status expandido, motivo_cancelamento, finalizada_em) e `comandas` (garcom_id).
+- Roadmap atualizado: Fase 3 expandida (Caixa); Fase 5 expandida (segurança); nova Fase 6 (pós-MVP).
+- Glossário atualizado com 6 termos.
+
 ### Changed
 - **Rebrand do projeto**: "Oui Chef" → "Ranggo". Toda documentação, código, assets e nomes técnicos atualizados. Identidade visual (cores, tipografia, layout) mantida.
 - Logo SVG real adicionada em `assets/logo/logo.svg` (substituindo placeholder `ft.Icons.RESTAURANT`).
