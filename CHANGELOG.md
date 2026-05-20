@@ -24,6 +24,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Ícone da janela configurado via `assets/logo/logo.ico`.
 - Exceção raiz renomeada: `OuiChefError` → `RanggoError` (em `src/utils/exceptions.py`).
 - Banco de dados: caminho atualizado para `data/ranggo.db` (banco antigo `data/ouichef.db` fica órfão; seed é idempotente e recria o estado em qualquer banco vazio).
+- Pasta-raiz do projeto renomeada de `oui_cheff/` para `ranggo/`.
 
 ### Changed (ponte documental Fase 0 → Fase 1)
 - `CLAUDE.md`: nova subseção **"Flet 0.85.1 — API atual"** dentro de "Padrões de código", com tabela das 6 migrações descobertas no smoke test da Fase 0 (`ft.app` → `ft.run`, `Icon(name=)` → `Icon(icon=)`, `ElevatedButton(text=)` → `ElevatedButton(content=)`, `padding/border/alignment` viraram classes em vez de módulos, ícones/cores em maiúsculas).
