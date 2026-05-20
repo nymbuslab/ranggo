@@ -24,18 +24,84 @@ class RanggoError(Exception):
 
 
 # ---------------------------------------------------------------------------
+# Fase 1 — Autenticação
+# ---------------------------------------------------------------------------
+
+
+class AutenticacaoError(RanggoError):
+    """Erro durante o processo de autenticação ou autorização.
+
+    Classe base para erros relacionados a login, sessão e permissões.
+    Não levantar diretamente — usar uma das subclasses específicas.
+    """
+
+
+class LoginInvalidoError(AutenticacaoError):
+    """Login ou senha incorretos.
+
+    Levantada pelo ``AuthService.autenticar()`` quando o login não
+    existe ou a senha não bate com o hash armazenado. Mensagem genérica
+    para o usuário final — não revelar qual dos dois estava errado,
+    para não facilitar enumeração de logins válidos.
+    """
+
+
+class UsuarioInativoError(AutenticacaoError):
+    """Tentativa de login com usuário marcado como inativo (``ativo=False``).
+
+    Levantada pelo ``AuthService.autenticar()`` após validação
+    bem-sucedida de login + senha, quando o campo ``ativo`` do usuário
+    está ``False``. Permite à UI exibir mensagem específica ("conta
+    desativada — fale com o administrador") em vez do genérico de
+    credenciais inválidas.
+    """
+
+
+class PermissaoNegadaError(AutenticacaoError):
+    """Usuário autenticado tenta ação que seu perfil não autoriza.
+
+    Ex.: Caixa tenta acessar a tela de Usuários (restrita a Admin) ou
+    aplicar desconto sem a permissão ``aplicar_desconto``. Usada pela
+    UI para bloquear navegação ou ações específicas, e pelos services
+    como guarda em pontos sensíveis.
+    """
+
+
+class ValidacaoError(RanggoError):
+    """Erro de validação de dados de entrada.
+
+    Classe base para falhas de regra de formato/consistência detectadas
+    por services antes de persistir. Não levantar diretamente — usar
+    uma das subclasses específicas.
+    """
+
+
+class NomeDuplicadoError(ValidacaoError):
+    """Tentativa de criar entidade com campo único já existente.
+
+    Ex.: criar usuário com ``login`` que já existe, criar perfil com
+    ``nome`` já cadastrado. O service deve validar antes de chamar
+    ``repository.criar()`` para evitar depender de ``IntegrityError``
+    do SQLAlchemy como mecanismo de controle.
+    """
+
+
+class SenhaFracaError(ValidacaoError):
+    """Senha não atende à política mínima.
+
+    Política da Fase 1: mínimo de 6 caracteres (sem outras regras).
+    Vai endurecer na Fase 5 (segurança expandida) — letras + números,
+    bloqueio de senhas óbvias, etc. Levantada pelo ``AuthService`` ao
+    cadastrar ou trocar senha.
+    """
+
+
+# ---------------------------------------------------------------------------
 # Hierarquia futura prevista (roteiro — adicionar conforme cada fase)
 # ---------------------------------------------------------------------------
 #
-# Fase 1 — Autenticação:
-#   class AutenticacaoError(RanggoError): ...
-#       class LoginInvalidoError(AutenticacaoError): ...
-#       class UsuarioInativoError(AutenticacaoError): ...
-#       class PermissaoNegadaError(AutenticacaoError): ...
-#
 # Fase 2 — Cadastros:
-#   class ValidacaoError(RanggoError): ...
-#       class NomeDuplicadoError(ValidacaoError): ...
+#   (ValidacaoError já implementada na Fase 1)
 #       class ReferenciaInvalidaError(ValidacaoError): ...
 #   class FichaTecnicaError(RanggoError): ...
 #       class InsumoJaNaFichaError(FichaTecnicaError): ...
