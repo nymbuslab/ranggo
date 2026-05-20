@@ -171,6 +171,31 @@ A documentação espalhada na web (e até parte do Context7) ainda mostra exempl
 
 Se uma view quebrar com `TypeError: unexpected keyword argument` ou `AttributeError: module 'flet.X' has no attribute 'Y'`, é quase certo padrão antigo — consultar a tabela acima ou fazer o probe.
 
+### Flet — processos zumbis em debug
+
+**Sintoma:** `python main.py` abre janela mas trava em **"Working..."** indefinidamente, mesmo com código que funcionava minutos antes.
+
+**Causa:** o Flet desktop é um cliente Flutter (`flet.exe`) que vive em processo separado do Python. Quando o Python é interrompido via Ctrl+C, `TaskStop` ou kill abrupto (em vez do `X` da janela), o cliente Flutter fica zumbi. Vários zumbis competindo por recursos fazem novas instâncias travar no splash.
+
+**Regra obrigatória durante debug iterativo:**
+
+1. **Sempre fechar a janela pelo X** — `Ctrl+C` no terminal é proibido durante desenvolvimento normal.
+2. **Antes de rodar `main.py` em workflow de debug repetido**, limpar zumbis preventivamente:
+
+   ```powershell
+   Stop-Process -Name flet -Force -ErrorAction SilentlyContinue
+   ```
+
+3. **Se travar em "Working..."**, diagnosticar:
+
+   ```powershell
+   Get-Process | Where-Object { $_.ProcessName -match "^(flet|python)$" } | Format-Table Id, ProcessName, MainWindowTitle -AutoSize
+   ```
+
+   Qualquer `flet`/`python` aparecendo sem ter sido iniciado por você é zumbi — mate.
+
+**Não confundir com erro de código:** se acabou de mudar código e travou no Working, a causa **mais provável** é zumbi, não bug. Limpe processos antes de duvidar do código.
+
 ### Repositórios — assinatura padrão
 
 ```python

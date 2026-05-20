@@ -26,6 +26,9 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Banco de dados: caminho atualizado para `data/ranggo.db` (banco antigo `data/ouichef.db` fica órfão; seed é idempotente e recria o estado em qualquer banco vazio).
 - Pasta-raiz do projeto renomeada de `oui_cheff/` para `ranggo/`.
 
+### Changed (lição operacional do rebrand)
+- `CLAUDE.md`: nova subseção **"Flet — processos zumbis em debug"** documentando que interromper o Python parent (Ctrl+C, kill abrupto) sem fechar a janela pelo X deixa o cliente Flutter (`flet.exe`) vivo. Múltiplos zumbis causam travamento no splash "Working...". Inclui comandos PowerShell de diagnóstico (`Get-Process flet,python`) e limpeza (`Stop-Process -Name flet -Force`). Descoberto durante smoke tests iterativos do rebrand: o sintoma parecia bug de código mas era subprocesso órfão.
+
 ### Changed (ponte documental Fase 0 → Fase 1)
 - `CLAUDE.md`: nova subseção **"Flet 0.85.1 — API atual"** dentro de "Padrões de código", com tabela das 6 migrações descobertas no smoke test da Fase 0 (`ft.app` → `ft.run`, `Icon(name=)` → `Icon(icon=)`, `ElevatedButton(text=)` → `ElevatedButton(content=)`, `padding/border/alignment` viraram classes em vez de módulos, ícones/cores em maiúsculas).
 - `CLAUDE.md`: tipo de ícone documentado como `ft.IconData` (IntEnum), não `str`.
