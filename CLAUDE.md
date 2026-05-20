@@ -183,6 +183,14 @@ A documentação espalhada na web (e até parte do Context7) ainda mostra exempl
 
 Se uma view quebrar com `TypeError: unexpected keyword argument` ou `AttributeError: module 'flet.X' has no attribute 'Y'`, é quase certo padrão antigo — consultar a tabela acima ou fazer o probe.
 
+### Pegadinhas conhecidas
+
+Comportamentos do Flet 0.85.1 que rendem bugs visuais silenciosos (compilam sem erro, mas renderizam errado):
+
+- **`ft.TextField(can_reveal_password=True)` expande a largura visual do campo.** O ícone do olho é renderizado como suffix nativo, *fora* do `width` declarado pelo TextField — então um campo de senha com `can_reveal_password=True` aparece mais largo do que um campo de texto simples ao lado. **Para alinhar campos visualmente, defina `width` explícito IDÊNTICO em todos os TextFields da mesma linha/coluna**, mesmo quando o pai (Container/Column) já tem largura fixa. Descoberto no Passo 6 da Fase 1 (LoginView).
+
+- **`ft.Column(tight=True)` desabilita `alignment=ft.MainAxisAlignment.X`.** `tight` faz a Column ocupar apenas o espaço mínimo necessário para o conteúdo, então não sobra espaço dentro dela para o `alignment` distribuir — vira no-op. **Para centralizar verticalmente uma Column dentro de um Container expansivo, use `tight=False` (padrão) + `alignment=ft.MainAxisAlignment.CENTER`** — a Column preenche o pai e centraliza o conteúdo internamente. Mesma armadilha vale para `Row(tight=True)` no eixo horizontal. Descoberto no Passo 6 da Fase 1 (LoginView ficava colada no topo).
+
 ### Verificação de API do Flet 0.85.1
 
 Context7 está desatualizado para Flet (indexa até 0.84.0 e ainda mostra padrões antigos como `page.on_window_event` e `page.window_prevent_close`).
