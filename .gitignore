@@ -1,0 +1,85 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# Distribuição / build
+build/
+dist/
+*.egg-info/
+*.egg
+*.spec
+*.manifest
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Ambientes virtuais
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# ---------- Banco de dados (Oui Chef) ----------
+# Versionar a pasta data/ via .gitkeep, mas NUNCA o conteúdo do banco.
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/*.sqlite
+data/*.sqlite3
+data/backups/
+
+# ---------- Logs ----------
+*.log
+logs/
+
+# ---------- Flet ----------
+# Pasta de build do flet pack
+storage/
+.flet/
+
+# ---------- IDEs / Editores / Assistentes ----------
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# ---------- Sistemas operacionais ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
+
+# ---------- Testes / cobertura ----------
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+
+# ---------- Type checkers ----------
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+
+# ---------- Secrets ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
