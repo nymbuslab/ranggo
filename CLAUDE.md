@@ -98,6 +98,8 @@ Quando for implementar uma tela, **primeiro abrir o protótipo correspondente** 
 | PDV / Venda Balcão | `prototipos/06-pdv.png` |
 | Modal de Checkout | `prototipos/07-modal-checkout.png` |
 | Listagem de Usuários (Fase 1, Passo 9.2) | `prototipos/08-listagem-usuarios.png` |
+| Formulário de Usuário (Fase 1, Passo 9.3) | `prototipos/09-formulario-usuario.png` |
+| Modal Trocar Senha (Fase 1, Passo 9.3) | `prototipos/10-modal-trocar-senha.png` |
 
 ### Telas SEM protótipo
 
