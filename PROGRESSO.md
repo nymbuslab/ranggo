@@ -8,29 +8,16 @@
 
 ## Em Andamento
 
-**Checkpoint salvo em 2026-05-20 12:15**
-
-### Feito nesta sessão
-- Higiene do PROGRESSO.md: removidas menções obsoletas ao rename da pasta `oui_cheff/`, checkpoint atualizado com tags `v0.1.0` + `v0.1.1` (commit `1e833cf`).
-- Documentação de **Caixa Operacional** (§4.7 com R1–R8), **Comissão de Garçom** débito Fase 6+ (§4.8), modelo de dados expandido (tabelas `caixas` + `movimentacao_caixa`, campos novos em `vendas` e `comandas`), roadmap, glossário (commit `e914b82`).
-- **Fix do bug "Working..."** resolvido na raiz: handler `page.window.on_event` (CLOSE) com `engine.dispose()` + `page.window.destroy()` + `os._exit(0)` em `src/ui/app.py`; `atexit.register(engine.dispose)` em `main.py`. Validado em 5 ciclos consecutivos sem espera (média 1.21s vs ~5-10s antes). Regra antiga de cleanup manual removida do `CLAUDE.md` (commit `3e7594d`).
-- Criação do **`ROADMAP.md`** como fonte única de futuro estratégico (309 linhas, 6 fases com objetivo/escopo/decisões cravadas/critérios de pronto/débitos). `PROJETO.md §7` enxugado para resumo + link. `CLAUDE.md` ganha `ROADMAP.md` na leitura obrigatória + tabela de divisão de responsabilidade entre `.md`s. `PROGRESSO.md` com nova nota de cabeçalho (commit `487036d`).
-
-### Próximo passo
-- **Passo 1 de 10 da Fase 1**: criar `src/repositories/usuario_repository.py` e `src/repositories/perfil_repository.py` no padrão `listar/buscar_por_id/criar/atualizar/deletar` (assinatura do `CLAUDE.md`), com métodos extras `UsuarioRepository.buscar_por_login(login: str)` e `PerfilRepository.buscar_por_nome(nome: str)`. Zero código de UI ou service nesta etapa.
+- **Passo 8 de 10 da Fase 1**: substituir o mock "Usuário Padrão / Sem login" no rodapé da sidebar (linhas ~158-167 de `src/ui/app.py`, função `_build_sidebar`) pelo `usuario.nome` + `usuario.perfil.nome` da sessão atual. Acesso via `sessao.usuario_atual()`. Considerar evitar lazy-load do `perfil` carregando-o eager (`relationship(lazy="joined")` ou query explícita ao logar).
 
 ---
 
 ## Próximos Passos
 
-### Fase 1 — Autenticação (P0)
+### Fase 1 — Autenticação (P0) — finalizar
 
-- [ ] (P0) `src/repositories/usuario_repository.py` e `src/repositories/perfil_repository.py` no padrão `listar/buscar_por_id/criar/atualizar/deletar`
-- [ ] (P0) `src/services/auth_service.py` com bcrypt (hash/verify), login/logout e gestão de sessão em memória
-- [ ] (P0) Seed do model `Permissao` com códigos iniciais (`aplicar_desconto`, `cancelar_venda`, `editar_cadastros`, etc.) + usuário Admin inicial
-- [ ] (P0) Tela de Login (`src/ui/views/login_view.py`) — referência `prototipos/01-login.png`
-- [ ] (P0) Roteamento simples no shell (login vs. shell autenticado) + conectar item ativo da sidebar à view ativa
-- [ ] (P0) Substituir mock "Usuário Padrão / Sem login" no topbar pelo usuário da sessão real
+- [ ] (P0) Passo 9/10: conectar item ativo da sidebar à view ativa (roteamento interno do shell autenticado)
+- [ ] (P0) Passo 10/10: validar fluxo ponta-a-ponta (login → shell com usuário real → logout → volta pro login) e fechar Fase 1 com tag
 
 ### Débitos técnicos da Fase 0 (tratar antes de fechar Fase 1)
 
@@ -77,6 +64,15 @@
 ---
 
 ## Concluído
+
+### Fase 1 — Autenticação (passos 1-7 de 10) (2026-05-20)
+
+- [x] **Passo 1 — repositories** (`d8c1677`): `UsuarioRepository` + `PerfilRepository` com CRUD padrão do CLAUDE.md + métodos `buscar_por_login` (case-sensitive, usado no AuthService), `listar_ativos` (filtra `ativo=True`) e `buscar_por_nome` (resolve `perfil_id` no seed).
+- [x] **Passos 2+3 — exceções + AuthService** (`b14f600`): 6 exceções de Fase 1 (`AutenticacaoError` + 3 subs, `ValidacaoError` + 2 subs); `AuthService.criar_hash` (bcrypt + política ≥6 chars), `verificar_senha` (bcrypt.checkpw, timing-attack resistant), `autenticar` (busca → senha → ativo, mensagem genérica para evitar enumeração).
+- [x] **Passo 4 — sessão singleton** (`85e4b9f`): `src/services/sessao.py` com `iniciar/encerrar/usuario_atual/esta_logado/requer_perfil`, thread-safe via `threading.Lock`, crítica curta no `requer_perfil` para evitar lazy-load do SQLAlchemy segurando o lock.
+- [x] **Passo 5 — seed expandido** (`28c324d`): 3 permissões (`cadastrar_usuario/acessar_relatorios/aplicar_desconto`) + amarrações (Admin=todas, Gerente=2, Caixa=0) + usuário Admin (`admin`/`admin123`, hash via AuthService), tudo idempotente.
+- [x] **Passo 6 — LoginView** (`a45591a`): tela fiel a `prototipos/01-login.png` (50/50 preto/branco, formulário 400px), erro inline em vermelho, foco automático, Enter submete, callback `on_login_success` (view agnóstica sobre pós-login). 2 pegadinhas Flet 0.85.1 documentadas no CLAUDE.md (`can_reveal_password` expande largura, `Column(tight=True)` desabilita alignment).
+- [x] **Passo 7 — roteamento + bugfix consolidado** (`047c70a`): `main()` virou dispatcher Login↔Shell via `_renderizar(page)`; botão "Fechar Caixa" com `AlertDialog` usando `page.show_dialog/pop_dialog` (API correta do Flet 0.85.1). Diagnóstico exaustivo do bug "Working..." (4 iterações até identificar que `prevent_close=True` é obrigatório + kill global de `flet.exe` via `psutil.process_iter` + remover `page.window.destroy()` async). Maximize confiável aplicando `maximized=True` pós-render. `psutil==7.2.2` adicionado em `requirements.txt` + em `.venv` e `.venv-1`. CLAUDE.md enxugado de 420→384 linhas, CHANGELOG.md ganhou detalhamento técnico das 4 iterações.
 
 ### Rebrand Oui Chef → Ranggo + correção do zumbi Flet (2026-05-20)
 
