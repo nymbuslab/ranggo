@@ -20,6 +20,7 @@ permanecem ignorantes sobre o ciclo de vida do app.
 """
 
 import atexit
+import os
 import sys
 import traceback
 
@@ -30,10 +31,38 @@ from src.database.seed import popular_dados_iniciais
 from src.ui.app import main as ui_main
 
 
-# Rede de segurança: se o app encerrar por qualquer caminho que não passe pelo
-# handler de CLOSE em src/ui/app.py (ex.: exceção no startup, kill externo),
-# o pool ainda libera o lock do SQLite antes do processo morrer.
-atexit.register(engine.dispose)
+def _cleanup_on_exit() -> None:
+    """Rede de segurança: dispose do engine + kill de subprocessos filhos.
+
+    Cobre qualquer caminho de saída que **não** passe pelo handler de
+    :class:`WindowEventType.CLOSE` em ``src/ui/app.py`` (ex.: exceção no
+    startup antes do handler ser registrado, ``KeyboardInterrupt`` no
+    terminal, kill externo via ``Stop-Process`` do parent Python). Sem
+    isso, o subprocesso ``flet.exe`` continua vivo após o Python morrer
+    e bloqueia a próxima execução do app em "Working...".
+    """
+    try:
+        engine.dispose()
+    except Exception:
+        pass
+
+    try:
+        import psutil
+
+        # Kill global de TODOS os flet.exe — netos do Flet 0.85.1 se
+        # desvinculam do pai e ficam invisíveis a ``children(recursive=True)``.
+        # Aceitável em ambiente single-app (Ranggo é o único app Flet do PC).
+        for proc in psutil.process_iter(["name"]):
+            try:
+                if (proc.info.get("name") or "").lower() == "flet.exe":
+                    proc.kill()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+    except Exception:
+        pass
+
+
+atexit.register(_cleanup_on_exit)
 
 
 def _ui_main_com_assets(page: ft.Page) -> None:

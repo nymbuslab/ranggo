@@ -19,9 +19,21 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ## [Unreleased]
 
 ### Fixed
-- Bug do "Working..." na segunda execução: resolvido na raiz com handler de `page.window.on_event` (CLOSE) chamando `engine.dispose()` + `page.window.destroy()` + `os._exit(0)`, mais `atexit.register(engine.dispose)` em `main.py` como rede de segurança. Substitui a regra antiga de cleanup manual de `flet.exe` no `CLAUDE.md`. Validado em 5 ciclos consecutivos sem espera (média de 1.21s por janela vs ~5-10s antes).
+- **Shutdown limpo robusto** (bug "Working..." na 2ª execução). Versão final após 4 iterações:
+  - **Causa raiz**: Flet 0.85.1 cria `flet.exe` netos que se desvinculam do parent Python, ficando como top-level invisíveis a `psutil.Process.children(recursive=True)`. Acumulam como zumbis e bloqueiam a próxima execução em "Working...".
+  - **Iterações descartadas**: (1) só `engine.dispose() + page.window.destroy() + os._exit(0)` com `prevent_close=False` — handler nunca recebia CLOSE porque o X fechava a janela direto. (2) `prevent_close=True` sem matar `flet.exe` — handler rodava mas `flet.exe` órfão acumulava. (3) `psutil.children(recursive=True).kill()` — pegava só 1 processo por ciclo enquanto o sistema acumulava vários zumbis. (4) `page.window.destroy()` chamado sincronamente — é coroutine `async` em 0.85.1, gera `RuntimeWarning: coroutine 'Window.destroy' was never awaited` e não tem efeito real.
+  - **Solução final**: `page.window.prevent_close = True` + handler `_on_window_event` que faz `engine.dispose()` → kill global de TODOS os `flet.exe` via `psutil.process_iter(["name"])` → `os._exit(0)`. **Sem** `page.window.destroy()` — matar o `flet.exe` (que É o renderer Flutter) já fecha a janela.
+  - **Rede de segurança**: `atexit.register(_cleanup_on_exit)` em `main.py` repete a mesma lógica (dispose + kill global) para cobrir saídas que não passam pelo handler (exceção no startup, Ctrl+C).
+  - **Pegadinha de ambiente**: o projeto tem 2 venvs (`.venv` e `.venv-1`); `psutil` precisa estar em ambas, senão o handler quebra silenciosamente com `ModuleNotFoundError` em runtime.
+  - **Validação**: 5 ciclos consecutivos `python main.py` → fechar pelo X → relançar sem espera. Todos abrem em <3s, `Get-Process -Name flet` retorna vazio entre ciclos.
+
+- **Maximize confiável no boot**:
+  - **Causa**: `page.window.maximized = True` aplicado ANTES do primeiro `page.update()` é inconfiável no Flet 0.85.1 — ora abre a janela default com "Working..." pendurado (usuário tem que maximizar à mão), ora abre ocupando até a área da taskbar do Windows (cortando o rodapé do conteúdo).
+  - **Tentativa descartada**: forçar `width`/`height` via `ctypes.windll.user32.GetSystemMetrics` — `SM_CXSCREEN`/`SM_CYSCREEN` retornam a tela inteira incluindo a taskbar, então o rodapé continuava cortado.
+  - **Solução**: setar dimensões iniciais conservadoras (1280×720), executar `_renderizar(page)`, e SÓ ENTÃO aplicar `page.window.maximized = True` + `page.update()`. O Flutter recalcula a área útil corretamente após o primeiro render.
 
 ### Added
+- `psutil==7.2.2` em `requirements.txt` — necessário para o kill global de `flet.exe` no shutdown e no `atexit`.
 - `ROADMAP.md` criado como fonte única de futuro estratégico do projeto. Documenta as 6 fases com objetivo de negócio, escopo, decisões cravadas, decisões em aberto, critérios de "pronto" e débitos previstos.
 - **Documentação de Caixa Operacional** (§4.7): regras de abertura/fechamento, vinculação `vendas.caixa_id` na finalização, sangria, bloqueio de troca de operador com exceção Admin, sem fiado, cancelamento por Admin com motivo, controle de troco, quebra de caixa com observação obrigatória.
 - **Documentação de Comissão de garçom** (§4.8): débito técnico Fase 6+, provisão `comandas.garcom_id` nullable desde Fase 4.

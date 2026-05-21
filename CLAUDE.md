@@ -187,9 +187,9 @@ Se uma view quebrar com `TypeError: unexpected keyword argument` ou `AttributeEr
 
 Comportamentos do Flet 0.85.1 que rendem bugs visuais silenciosos (compilam sem erro, mas renderizam errado):
 
-- **`ft.TextField(can_reveal_password=True)` expande a largura visual do campo.** O ícone do olho é renderizado como suffix nativo, *fora* do `width` declarado pelo TextField — então um campo de senha com `can_reveal_password=True` aparece mais largo do que um campo de texto simples ao lado. **Para alinhar campos visualmente, defina `width` explícito IDÊNTICO em todos os TextFields da mesma linha/coluna**, mesmo quando o pai (Container/Column) já tem largura fixa. Descoberto no Passo 6 da Fase 1 (LoginView).
+- **`ft.TextField(can_reveal_password=True)` expande a largura visual do campo.** O ícone do olho é renderizado como suffix nativo, *fora* do `width` declarado. Para alinhar campos visualmente, defina `width` explícito IDÊNTICO em todos os TextFields da mesma linha/coluna, mesmo quando o pai (Container/Column) já tem largura fixa.
 
-- **`ft.Column(tight=True)` desabilita `alignment=ft.MainAxisAlignment.X`.** `tight` faz a Column ocupar apenas o espaço mínimo necessário para o conteúdo, então não sobra espaço dentro dela para o `alignment` distribuir — vira no-op. **Para centralizar verticalmente uma Column dentro de um Container expansivo, use `tight=False` (padrão) + `alignment=ft.MainAxisAlignment.CENTER`** — a Column preenche o pai e centraliza o conteúdo internamente. Mesma armadilha vale para `Row(tight=True)` no eixo horizontal. Descoberto no Passo 6 da Fase 1 (LoginView ficava colada no topo).
+- **`ft.Column(tight=True)` desabilita `alignment=ft.MainAxisAlignment.X`.** `tight` faz a Column ocupar apenas o espaço mínimo do conteúdo, então não sobra espaço para o `alignment` distribuir — vira no-op. Para centralizar verticalmente dentro de um Container expansivo, use `tight=False` + `alignment=ft.MainAxisAlignment.CENTER`. Mesma armadilha vale para `Row(tight=True)`.
 
 ### Verificação de API do Flet 0.85.1
 
@@ -206,19 +206,28 @@ print(list(ft.WindowEventType))  # membros do enum
 
 Use Context7 como complemento, não como autoridade. Quando houver conflito entre Context7 e probe, probe vence.
 
-### Shutdown limpo (Flet 0.85.1)
+### Shutdown limpo (Flet 0.85.1) — REGRA OBRIGATÓRIA
 
-O app deve sair imediatamente ao fechar pelo X, sem deixar processo zumbi.
+Toda mudança em `src/ui/app.py` ou `main.py` PRESERVA:
 
-**Implementação obrigatória:**
+- `page.window.prevent_close = True` antes do handler.
+- Handler `_on_window_event` que: `engine.dispose()` → kill global de `flet.exe` via `psutil.process_iter(["name"])` → `os._exit(0)`. **Não** chamar `page.window.destroy()` (é coroutine async em 0.85.1).
+- `atexit.register(_cleanup_on_exit)` em `main.py` (mesma lógica do handler) como rede de segurança.
+- `psutil` instalado em **todas** as venvs do projeto (`.venv` e `.venv-1`).
 
-- `src/ui/app.py`: handler `page.window.on_event` que chama `engine.dispose()` + `page.window.destroy()` + `os._exit(0)`.
-- `main.py`: `atexit.register(engine.dispose)` como rede de segurança (cobre caminhos de saída que não passam pelo handler — exceção no startup, kill externo).
-- Razão de `os._exit(0)` em vez de `sys.exit(0)`: ao fechar pela X, o `ft.run()` demora ~2s para retornar enquanto o subprocesso Flutter (`flet.exe`) desmonta gracefully. Esse delay segura SQLite locks e portas internas — a próxima execução trava em "Working...". `os._exit(0)` força saída imediata, dispensando o cleanup gradual do Flutter.
+**Validação obrigatória pós-mudança**: 5 ciclos `python main.py` → X → relançar sem espera. Todos abrem em <3s; `Get-Process -Name flet` vazio entre ciclos.
 
-**Validação:** 5 ciclos `python main.py` → fechar pelo X → `python main.py` sem espera, todos abrindo em < 3 segundos. Se algum falhar, NÃO declarar resolvido — investigar (talvez seja necessário marcar threads do Flet como daemon, ou outro caminho).
+Contexto histórico/causa raiz: ver `CHANGELOG.md [Unreleased]`.
 
-**Não fazer:** `Ctrl+C` no terminal durante debug normal. O handler de `CLOSE` cobre o caminho do `X`; `Ctrl+C` mata o Python parent sem disparar o evento, deixando potencial zumbi do `flet.exe`. O `atexit` em `main.py` reduz o risco mas não elimina.
+### Maximize confiável no boot (Flet 0.85.1) — REGRA OBRIGATÓRIA
+
+`page.window.maximized = True` **só após** o primeiro `_renderizar(page)` + `page.update()`. Setar antes é inconfiável (janela default com "Working..." ou maior que área útil cortando rodapé).
+
+Dimensões iniciais antes do render: `width=1280, height=720, min_width=1280, min_height=720`.
+
+**Não fazer**: `ctypes.windll.user32.GetSystemMetrics` — retorna tela inteira incluindo taskbar, corta rodapé.
+
+Contexto histórico: ver `CHANGELOG.md [Unreleased]`.
 
 ### Repositórios — assinatura padrão
 

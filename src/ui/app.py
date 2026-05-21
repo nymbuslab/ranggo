@@ -1,16 +1,15 @@
-"""Entry point da UI: configura janela, tema e monta o shell visual.
+"""Entry point da UI: configura janela, tema e despacha entre Login e Shell.
 
-A função :func:`main` é o alvo de ``ft.app(target=...)`` chamado em
-``main.py``. Não acessa banco nem executa lógica de negócio — sua
-única responsabilidade é a camada visual:
+A função :func:`main` é o alvo de ``ft.run(main=...)`` chamado em
+``main.py``. Decide o que renderizar baseado em :func:`sessao.esta_logado`:
 
-    * Aplica o :class:`ft.Theme` global (via :func:`theme.build_flet_theme`).
-    * Configura a janela (título, tamanho mínimo, maximizada).
-    * Monta o shell: sidebar 240px preta + topbar 64px branca + área
-      de conteúdo cinza com o card central "Fundação OK".
+    * Sem sessão → :class:`LoginView`.
+    * Com sessão → shell (sidebar 240 px preta + topbar 64 px branca +
+      área de conteúdo cinza com card central da Fase 0).
 
-Itens da sidebar são placeholders visuais — nenhum callback funcional
-nesta fase. Roteamento e injeção de views entram na Fase 1.
+Re-render é feito limpando ``page.controls`` e chamando ``page.update``.
+Não há roteamento por URL — a transição é puramente de estado, conforme
+combinado para a Fase 1.
 """
 
 from __future__ import annotations
@@ -20,7 +19,10 @@ import os
 import flet as ft
 
 from src.database.connection import engine
+from src.database.models.usuario import Usuario
+from src.services import sessao
 from src.ui import theme
+from src.ui.views.login_view import LoginView
 
 
 # Itens do menu lateral. Ordem reflete o protótipo prototipos/02-dashboard.png.
@@ -41,8 +43,9 @@ _ITENS_MENU: list[tuple[str, ft.IconData]] = [
 def main(page: ft.Page) -> None:
     """Ponto de entrada da UI do Ranggo.
 
-    Aplica tema, configura a janela e adiciona o shell visual à página.
-    Chamada por ``ft.app(target=main)`` no ``main.py``.
+    Aplica tema, configura a janela e despacha para Login ou Shell
+    baseado no estado de :mod:`src.services.sessao`. Chamada por
+    ``ft.run(main=main)`` no ``main.py``.
 
     Args:
         page: Página fornecida pelo runtime do Flet.
@@ -54,10 +57,13 @@ def main(page: ft.Page) -> None:
     page.bgcolor = theme.COR_CINZA_100
     page.padding = 0  # shell ocupa 100% da viewport; padding é interno por área.
 
-    # PDV exige espaço para layout de 3 colunas — abaixo de 1280×720 quebra.
+    # Dimensões iniciais. PDV exige 1280×720 para layout de 3 colunas; abaixo
+    # disso quebra. ``maximized`` é aplicado depois do primeiro render (ver
+    # final desta função) — setar aqui no Flet 0.85.1 é inconfiável.
+    page.window.width = 1280
+    page.window.height = 720
     page.window.min_width = 1280
     page.window.min_height = 720
-    page.window.maximized = True
     # Caminho relativo a assets_dir (definido em main.py).
     page.window.icon = "logo/logo.ico"
 
@@ -67,22 +73,124 @@ def main(page: ft.Page) -> None:
     # Durante esse delay, SQLite locks e portas internas ficam presos — a
     # próxima execução trava em "Working..." enquanto o sistema espera os
     # recursos liberarem. Forçar saída no evento CLOSE elimina o intervalo.
-    page.window.prevent_close = False
+    # prevent_close=True é OBRIGATÓRIO para que o Flet 0.85.1 dispare
+    # WindowEventType.CLOSE ao clicar no X. Com prevent_close=False
+    # (default) o X fecha a janela direto, o handler NUNCA recebe CLOSE,
+    # e Python sai apenas quando ft.run() retorna após o subprocesso
+    # flet.exe desmontar — gradiente que deixa SQLite locks e portas
+    # presos, travando a próxima execução em "Working...". Com
+    # prevent_close=True, o handler abaixo intercepta, faz cleanup
+    # síncrono e força os._exit(0) antes de qualquer desmontagem do
+    # Flutter. Causa investigada com instrumentação em 2026-05-20.
+    page.window.prevent_close = True
 
     def _on_window_event(e: ft.WindowEvent) -> None:
-        if e.type == ft.WindowEventType.CLOSE:
+        if e.type != ft.WindowEventType.CLOSE:
+            return
+
+        # 1. Dispose do engine: libera o lock do SQLite imediatamente.
+        try:
             engine.dispose()
-            page.window.destroy()
-            # os._exit em vez de sys.exit: bypassa qualquer cleanup pendente
-            # do runtime do Flet/Flutter. dispose() acima já liberou o engine.
-            os._exit(0)
+        except Exception:
+            pass
+
+        # 2. Matar TODOS os flet.exe do sistema (não só filhos do Python).
+        #    O Flet 0.85.1 cria netos que se desvinculam do pai, ficando
+        #    como top-level invisíveis a ``psutil.children``. Kill global
+        #    é brutal mas eficaz em ambiente single-app — o Ranggo é o
+        #    único app Flet do PC. Matar o flet.exe é o que efetivamente
+        #    fecha a janela (o flet.exe É o renderer Flutter); não
+        #    chamamos ``page.window.destroy()`` porque em Flet 0.85.1
+        #    é coroutine async e geraria RuntimeWarning sem efeito real.
+        try:
+            import psutil
+
+            for proc in psutil.process_iter(["name"]):
+                try:
+                    if (proc.info.get("name") or "").lower() == "flet.exe":
+                        proc.kill()
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+        except Exception:
+            pass
+
+        # 3. Matar processo Python. ``os._exit`` em vez de ``sys.exit``
+        #    para bypassar qualquer cleanup pendente do runtime Flet.
+        os._exit(0)
 
     page.window.on_event = _on_window_event
 
-    # --- Shell visual ---
-    shell = ft.Row(
+    # --- Renderiza tela inicial ---
+    _renderizar(page)
+
+    # --- Maximize PÓS-RENDER ---
+    # No Flet 0.85.1, ``page.window.maximized = True`` aplicado ANTES do
+    # primeiro ``page.update()`` é inconfiável: ora não maximiza (janela
+    # abre default com "Working..." até o usuário maximizar à mão), ora
+    # abre ocupando até a área da taskbar (cortando rodapé do conteúdo).
+    # Aplicar APÓS o render inicial faz o Flutter recalcular o tamanho da
+    # área útil do Windows corretamente. Descoberto em 2026-05-20.
+    page.window.maximized = True
+    page.update()
+
+
+# ---------------------------------------------------------------------------
+# Despacho Login <-> Shell
+# ---------------------------------------------------------------------------
+
+def _renderizar(page: ft.Page) -> None:
+    """Renderiza a tela atual baseado em :func:`sessao.esta_logado`.
+
+    Chamada em três momentos:
+        1. Startup, a partir de :func:`main`.
+        2. Após login bem-sucedido (callback da :class:`LoginView`).
+        3. Após logout (handler do botão "Fechar Caixa").
+
+    Limpa ``page.controls`` antes de adicionar a nova árvore e chama
+    ``page.update`` para refletir a troca.
+
+    Args:
+        page: Página Flet ativa.
+    """
+    page.controls.clear()
+    if sessao.esta_logado():
+        page.add(_build_shell(page))
+    else:
+        page.add(_build_login(page))
+    page.update()
+
+
+def _build_login(page: ft.Page) -> ft.Control:
+    """Monta a :class:`LoginView` com callback que inicia sessão e re-renderiza.
+
+    Args:
+        page: Página Flet ativa, passada à view para que ela possa
+            chamar ``page.update`` ao alterar estado interno.
+
+    Returns:
+        Control raiz da view de login.
+    """
+    def _on_login_success(usuario: Usuario) -> None:
+        sessao.iniciar(usuario)
+        _renderizar(page)
+
+    login = LoginView(page, on_login_success=_on_login_success)
+    return login.build()
+
+
+def _build_shell(page: ft.Page) -> ft.Control:
+    """Monta o shell autenticado (sidebar + topbar + área de conteúdo).
+
+    Args:
+        page: Página Flet ativa, repassada à sidebar para que o botão
+            "Fechar Caixa" possa abrir o Dialog de confirmação.
+
+    Returns:
+        :class:`ft.Row` raiz do shell.
+    """
+    return ft.Row(
         controls=[
-            _build_sidebar(),
+            _build_sidebar(page),
             ft.Column(
                 controls=[
                     _build_topbar("Dashboard"),
@@ -96,15 +204,18 @@ def main(page: ft.Page) -> None:
         expand=True,
     )
 
-    page.add(shell)
-
 
 # ---------------------------------------------------------------------------
 # Sidebar
 # ---------------------------------------------------------------------------
 
-def _build_sidebar() -> ft.Container:
-    """Constrói a sidebar fixa de 240px (fundo preto)."""
+def _build_sidebar(page: ft.Page) -> ft.Container:
+    """Constrói a sidebar fixa de 240px (fundo preto).
+
+    Args:
+        page: Página Flet ativa, necessária para que o botão "Fechar
+            Caixa" abra o Dialog de confirmação via :func:`_on_fechar_caixa`.
+    """
     # Logo: ícone de talheres + wordmark.
     # Caminho de imagem é relativo a assets_dir (definido em main.py).
     logo = ft.Row(
@@ -137,8 +248,8 @@ def _build_sidebar() -> ft.Container:
         spacing=4,
     )
 
-    # Rodapé: usuário mockado + botão "Finalizar Turno".
-    # TODO Fase 1: substituir nome/perfil pelo usuário autenticado da session.
+    # Rodapé: usuário mockado + botão "Fechar Caixa".
+    # TODO Passo 8: substituir nome/perfil pelo usuário autenticado da sessão.
     rodape = ft.Column(
         controls=[
             ft.Container(
@@ -176,7 +287,7 @@ def _build_sidebar() -> ft.Container:
                 padding=ft.Padding.symmetric(horizontal=4, vertical=8),
             ),
             ft.ElevatedButton(
-                content="Finalizar Turno",
+                content="Fechar Caixa",
                 icon=ft.Icons.LOGOUT,
                 color=theme.COR_TERCIARIA,
                 bgcolor=theme.COR_ERRO,
@@ -189,6 +300,7 @@ def _build_sidebar() -> ft.Container:
                 # Largura útil da sidebar: LARGURA_SIDEBAR - 2 * padding lateral
                 # (16 de cada lado, definido no Container raiz da sidebar).
                 width=theme.LARGURA_SIDEBAR - 2 * 16,
+                on_click=lambda e: _on_fechar_caixa(page),
             ),
         ],
         spacing=8,
@@ -373,3 +485,50 @@ def _build_conteudo() -> ft.Container:
         alignment=ft.Alignment.CENTER,
         content=card,
     )
+
+
+# ---------------------------------------------------------------------------
+# Logout (Dialog de confirmação)
+# ---------------------------------------------------------------------------
+
+def _on_fechar_caixa(page: ft.Page) -> None:
+    """Abre Dialog de confirmação; se confirmado, desloga e volta ao Login.
+
+    Args:
+        page: Página Flet ativa, usada para abrir/fechar o Dialog e para
+            re-renderizar após o logout.
+    """
+    # Em Flet 0.85.1 a API correta é page.show_dialog(dialog) /
+    # page.pop_dialog() — page.open()/page.close() não existem nesta
+    # versão (foram introduzidos em uma release mais nova).
+    def _confirmar(e: ft.ControlEvent) -> None:
+        page.pop_dialog()
+        sessao.encerrar()
+        _renderizar(page)
+
+    def _cancelar(e: ft.ControlEvent) -> None:
+        page.pop_dialog()
+
+    dialog = ft.AlertDialog(
+        modal=True,
+        title=ft.Text("Fechar Caixa"),
+        content=ft.Text(
+            "Deseja realmente fechar o caixa e sair do sistema?"
+        ),
+        actions=[
+            ft.TextButton("Cancelar", on_click=_cancelar),
+            ft.ElevatedButton(
+                content="Fechar Caixa",
+                on_click=_confirmar,
+                bgcolor=theme.COR_ERRO,
+                color=theme.COR_TERCIARIA,
+                style=ft.ButtonStyle(
+                    shape=ft.RoundedRectangleBorder(
+                        radius=theme.BORDER_RADIUS_BOTAO,
+                    ),
+                ),
+            ),
+        ],
+        actions_alignment=ft.MainAxisAlignment.END,
+    )
+    page.show_dialog(dialog)
