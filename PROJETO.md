@@ -119,7 +119,8 @@ prototipos/
 ├── 04-formulario-cadastro.png
 ├── 05-ficha-tecnica.png
 ├── 06-pdv.png
-└── 07-modal-checkout.png
+├── 07-modal-checkout.png
+└── 08-listagem-usuarios.png
 ```
 
 **Regra fundamental**: quando uma tela ainda não tem protótipo, ela deve ser construída **derivando dos padrões já estabelecidos** nos protótipos existentes e nesta seção de identidade visual. Não inventar paleta, não introduzir fontes novas, não criar tipos de componentes diferentes dos que já existem nas telas prototipadas.

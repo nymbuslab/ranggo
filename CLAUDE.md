@@ -97,6 +97,7 @@ Quando for implementar uma tela, **primeiro abrir o protótipo correspondente** 
 | Ficha Técnica do Prato | `prototipos/05-ficha-tecnica.png` |
 | PDV / Venda Balcão | `prototipos/06-pdv.png` |
 | Modal de Checkout | `prototipos/07-modal-checkout.png` |
+| Listagem de Usuários (Fase 1, Passo 9.2) | `prototipos/08-listagem-usuarios.png` |
 
 ### Telas SEM protótipo
 
