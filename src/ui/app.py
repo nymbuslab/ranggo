@@ -248,32 +248,38 @@ def _build_sidebar(page: ft.Page) -> ft.Container:
         spacing=4,
     )
 
-    # Rodapé: usuário mockado + botão "Fechar Caixa".
-    # TODO Passo 8: substituir nome/perfil pelo usuário autenticado da sessão.
+    # Rodapé: usuário autenticado da sessão + botão "Fechar Caixa".
+    # ``_build_sidebar`` só é chamado de dentro de ``_build_shell``, que
+    # por sua vez só roda se ``sessao.esta_logado()``. Logo, ``usuario``
+    # nunca é None aqui — se for, é bug e o AttributeError deve aparecer.
+    usuario = sessao.usuario_atual()
+    inicial = usuario.nome[0].upper() if usuario.nome else "?"
+
     rodape = ft.Column(
         controls=[
             ft.Container(
                 content=ft.Row(
                     controls=[
                         ft.CircleAvatar(
-                            content=ft.Icon(
-                                icon=ft.Icons.PERSON,
+                            content=ft.Text(
+                                inicial,
                                 color=theme.COR_TERCIARIA,
-                                size=18,
+                                size=16,
+                                weight=ft.FontWeight.W_700,  # Bold
                             ),
-                            bgcolor=theme.COR_CINZA_600,
-                            radius=16,
+                            bgcolor=theme.COR_PRIMARIA,
+                            radius=20,  # 40px de diâmetro
                         ),
                         ft.Column(
                             controls=[
                                 ft.Text(
-                                    "Usuário Padrão",
+                                    usuario.nome,
                                     color=theme.COR_TERCIARIA,
                                     size=theme.FONTE_TAMANHO_LABEL,
                                     weight=ft.FontWeight.W_500,
                                 ),
                                 ft.Text(
-                                    "Sem login",
+                                    usuario.perfil.nome,
                                     color=theme.COR_CINZA_400,
                                     size=theme.FONTE_TAMANHO_HELPER,
                                 ),

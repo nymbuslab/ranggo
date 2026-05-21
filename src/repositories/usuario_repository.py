@@ -8,7 +8,7 @@ conhece UI. A :class:`Session` é injetada pelo caller via construtor.
 from __future__ import annotations
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from src.database.models.usuario import Usuario
 
@@ -54,13 +54,25 @@ class UsuarioRepository:
         o login não existe — o service decide a mensagem ("usuário ou
         senha incorretos") sem distinguir login inválido de senha errada.
 
+        Carrega ``perfil`` via ``joinedload`` para que a UI possa exibir
+        ``usuario.perfil.nome`` depois que a :class:`Session` do login já
+        foi fechada — sem isso, qualquer acesso ao relationship dispara
+        ``DetachedInstanceError`` (a UI do shell autenticado lê o usuário
+        da :mod:`src.services.sessao`, que mantém o objeto vivo mas sem
+        sessão anexada).
+
         Args:
             login: Login exato (case-sensitive) do usuário.
 
         Returns:
-            O :class:`Usuario` correspondente ou ``None`` se não existir.
+            O :class:`Usuario` correspondente (com ``perfil`` já carregado)
+            ou ``None`` se não existir.
         """
-        stmt = select(Usuario).where(Usuario.login == login)
+        stmt = (
+            select(Usuario)
+            .options(joinedload(Usuario.perfil))
+            .where(Usuario.login == login)
+        )
         return self._session.execute(stmt).scalar_one_or_none()
 
     def criar(self, dados: dict) -> Usuario:
