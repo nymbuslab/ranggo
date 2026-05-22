@@ -431,6 +431,34 @@ NÃO registrar:
 
 ---
 
+## Lint markdown (verificação manual)
+
+Antes de commits que tocam `.md` (CHANGELOG, ROADMAP, PROJETO, CLAUDE), rodar:
+
+```bash
+npx --yes markdownlint-cli2 "*.md"
+```
+
+Esperado: `Summary: 0 error(s)`.
+
+Para corrigir automaticamente o que for auto-fixable (blank lines around headings/lists, etc.), adicionar `--fix`:
+
+```bash
+npx --yes markdownlint-cli2 --fix "*.md"
+```
+
+Tabelas estilo "compact" (separator `|---|---|`) e fences sem language ainda precisam de fix manual: usar `| --- | --- |` (padded) e ` ```text ` (ou linguagem específica).
+
+Config em `.markdownlint.json` (raiz). Disables aplicados conscientemente:
+
+- `MD013` (line-length 80) — incompatível com changelogs/specs.
+- `MD024` (duplicate-heading) — `Added`/`Changed`/`Fixed` repetem por versão no CHANGELOG.
+- `MD033` (inline HTML) — usamos `<!-- modelo -->` no CHANGELOG.
+
+`markdownlint-cli2` é tool Node/npm, **não** Python. NÃO instalar via `pip` — `npx` baixa sob demanda sem precisar instalar globalmente.
+
+---
+
 ## Convenções de commit (quando o usuário usar git)
 
 Padrão **Conventional Commits**:

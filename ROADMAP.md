@@ -290,10 +290,10 @@ Documentados quando a fase iniciar (escopo amplo demais para cravar hoje).
 
 Tarefas pequenas que não pertencem a nenhuma fase específica, mas precisam ser endereçadas em algum momento:
 
-- [x] ~~Lint markdown em `CLAUDE.md` e `CHANGELOG.md`~~ (✅ resolvido após Fase 1: `.markdownlint.json` na raiz + auto-fix via markdownlint-cli2 + fixes manuais nas tabelas).
+- [x] ~~Lint markdown em `CLAUDE.md` e `CHANGELOG.md`~~ (✅ resolvido em `af67b44` após Fase 1: `.markdownlint.json` na raiz + auto-fix via `markdownlint-cli2 --fix` + fixes manuais nas tabelas. Comando de verificação manual documentado em `CLAUDE.md` (seção "Lint markdown").
 - [x] ~~Logo SVG real na sidebar~~ (✅ resolvido na v0.1.1).
-- [ ] ICO multi-resolução para empacotamento (✅ resolvido — 16/32/48/256 em `assets/logo/`).
-- [ ] Push do repositório para remote (GitHub privado ou similar) — sem isso, projeto não tem backup.
+- [x] ~~ICO multi-resolução para empacotamento~~ (✅ resolvido — `assets/logo/logo.ico` + `logo_16/32/48.ico`).
+- [x] ~~Push do repositório para remote~~ (✅ resolvido — `origin` em `github.com/nymbuslab/ranggo`, sincronizado desde commit `3348dc1` da Fase 1).
 - [ ] Configurar pytest + primeiros testes unitários (decisão adiada — sem usuário ainda, prioridade baixa).
 - [ ] Validação de força do tipo `mypy --strict` (decisão adiada).
 
