@@ -22,6 +22,8 @@ from src.database.connection import engine
 from src.database.models.usuario import Usuario
 from src.services import sessao
 from src.ui import components, theme
+from src.ui.views.cadastros.form_categoria_view import FormCategoriaView
+from src.ui.views.cadastros.lista_categorias_view import ListaCategoriasView
 from src.ui.views.login_view import LoginView
 from src.ui.views.usuarios.form_usuario_view import FormUsuarioView
 from src.ui.views.usuarios.lista_usuarios_view import ListaUsuariosView
@@ -31,17 +33,45 @@ from src.ui.views.usuarios.lista_usuarios_view import ListaUsuariosView
 # (rotulo, icone, view_id). ``view_id=None`` → item placeholder visual sem
 # navegação (será implementado em fases futuras). Itens condicionais de
 # perfil são filtrados em ``_build_sidebar`` (ex.: "Usuários" só p/ Admin).
+#
+# "Cadastros" é tratado fora desta lista — é accordion com submenu (ver
+# ``_SUBITENS_CADASTROS`` e ``_build_item_cadastros``). Sua posição lógica
+# na ordem fica entre "Delivery" e "Estoque".
 _ITENS_MENU: list[tuple[str, ft.IconData, str | None]] = [
     ("Dashboard", ft.Icons.SPACE_DASHBOARD, "dashboard"),
     ("Vendas", ft.Icons.POINT_OF_SALE, None),         # Fase 3
     ("Comandas", ft.Icons.RECEIPT_LONG, None),        # Fase 4
     ("Delivery", ft.Icons.DELIVERY_DINING, None),     # Fase 5
-    ("Cadastros", ft.Icons.FOLDER, None),             # Fase 2 (submenu)
+    # ↑ "Cadastros" injetado aqui pelo _build_sidebar (accordion).
     ("Estoque", ft.Icons.INVENTORY_2, None),          # Fase 2
     ("Relatórios", ft.Icons.BAR_CHART, None),         # Fase 5
     ("Usuários", ft.Icons.PEOPLE, "usuarios_lista"),  # Fase 1 (só Admin)
     ("Configurações", ft.Icons.SETTINGS, None),       # Fase 5
 ]
+
+
+# Subitens do accordion "Cadastros". Visíveis a TODOS os perfis (Admin,
+# Gerente, Caixa) — cadastros são operação diária. (rotulo, icone, view_id).
+# ``view_id=None`` → subitem placeholder (clicável sem efeito) até a fase
+# correspondente. O subitem "Categorias" liga ao Passo 1 da Fase 2.
+_SUBITENS_CADASTROS: list[tuple[str, ft.IconData, str | None]] = [
+    ("Categorias", ft.Icons.LABEL, "cadastros_categorias_lista"),
+    ("Unidades de Medida", ft.Icons.STRAIGHTEN, None),    # Passo 2
+    ("Clientes", ft.Icons.PEOPLE_OUTLINE, None),          # Passo 4
+    ("Fornecedores", ft.Icons.LOCAL_SHIPPING, None),      # Passo 3
+    ("Produtos", ft.Icons.INVENTORY_2, None),             # Passo 5
+    ("Insumos", ft.Icons.GRAIN, None),                    # Passo 6
+    ("Pratos", ft.Icons.RESTAURANT_MENU, None),           # Passo 7
+    ("Fichas Técnicas", ft.Icons.DESCRIPTION, None),      # Passo 8
+]
+
+
+# Conjunto de ``view_id`` que pertencem ao módulo "Cadastros" — usado para
+# destacar o item pai em laranja quando alguma view-filha está ativa.
+_VIEWS_CADASTROS: frozenset[str] = frozenset({
+    "cadastros_categorias_lista",
+    "cadastros_categorias_form",
+})
 
 
 # ---------------------------------------------------------------------------
@@ -58,6 +88,16 @@ _view_atual: str = "dashboard"
 # ``usuario_id`` repassado ao :class:`FormUsuarioView` em modo EDITAR.
 # ``None`` significa modo CRIAR (quando ``_view_atual == "usuarios_form"``).
 _form_usuario_id: int | None = None
+
+# ``categoria_id`` repassado ao :class:`FormCategoriaView` em modo EDITAR.
+# ``None`` significa modo CRIAR (quando ``_view_atual ==
+# "cadastros_categorias_form"``).
+_form_categoria_id: int | None = None
+
+# Estado de expansão do accordion "Cadastros" na sidebar. Toggle manual ao
+# clicar no item. Auto-expande quando entra numa view-filha de Cadastros
+# (ver ``_navegar``). Auto-recolhe no logout (junto com ``_view_atual``).
+_cadastros_expandido: bool = False
 
 
 def main(page: ft.Page) -> None:
@@ -173,7 +213,7 @@ def _renderizar(page: ft.Page) -> None:
     Args:
         page: Página Flet ativa.
     """
-    global _view_atual, _form_usuario_id
+    global _view_atual, _form_usuario_id, _form_categoria_id, _cadastros_expandido
 
     page.controls.clear()
     if sessao.esta_logado():
@@ -183,6 +223,8 @@ def _renderizar(page: ft.Page) -> None:
         # comece sempre no Dashboard, não na última view visitada.
         _view_atual = "dashboard"
         _form_usuario_id = None
+        _form_categoria_id = None
+        _cadastros_expandido = False
         page.add(_build_login(page))
     page.update()
 
@@ -190,20 +232,39 @@ def _renderizar(page: ft.Page) -> None:
 def _navegar(
     page: ft.Page,
     nova_view: str,
-    form_usuario_id: int | None = None,
+    form_id: int | None = None,
 ) -> None:
     """Troca a view ativa do shell e re-renderiza.
+
+    Auto-expande o accordion "Cadastros" se ``nova_view`` pertence ao
+    módulo de Cadastros (evita o efeito visual de o usuário "perder" o
+    contexto da navegação quando entra direto numa view de Cadastros).
 
     Args:
         page: Página Flet ativa.
         nova_view: Identificador da view destino. Valores aceitos:
-            ``"dashboard"``, ``"usuarios_lista"``, ``"usuarios_form"``.
-        form_usuario_id: Em ``"usuarios_form"``, ``None`` para modo
-            CRIAR e ``int`` para EDITAR. Ignorado nas demais views.
+            ``"dashboard"``, ``"usuarios_lista"``, ``"usuarios_form"``,
+            ``"cadastros_categorias_lista"``, ``"cadastros_categorias_form"``.
+        form_id: Em forms (``"usuarios_form"``,
+            ``"cadastros_categorias_form"``), ``None`` para modo CRIAR
+            e ``int`` para EDITAR. Roteado para o ``_form_*_id`` correto
+            baseado em ``nova_view``. Ignorado nas demais views.
     """
-    global _view_atual, _form_usuario_id
+    global _view_atual, _form_usuario_id, _form_categoria_id, _cadastros_expandido
     _view_atual = nova_view
-    _form_usuario_id = form_usuario_id
+
+    # Roteia ``form_id`` para o estado correto baseado na view destino.
+    # Quando virarem 3+ forms simultâneos (Passo 5+), provavelmente vale
+    # virar dict {view_id → form_id}. Por enquanto if/elif é mais legível.
+    if nova_view == "usuarios_form":
+        _form_usuario_id = form_id
+    elif nova_view == "cadastros_categorias_form":
+        _form_categoria_id = form_id
+
+    # Auto-expande o accordion quando navega para uma view de Cadastros.
+    if nova_view in _VIEWS_CADASTROS:
+        _cadastros_expandido = True
+
     _renderizar(page)
 
 
@@ -272,6 +333,23 @@ def _build_conteudo(page: ft.Page) -> ft.Control:
             usuario_id=_form_usuario_id,
             on_voltar=lambda: _navegar(page, "usuarios_lista"),
             on_salvar=lambda: _navegar(page, "usuarios_lista"),
+        ).build()
+
+    if _view_atual == "cadastros_categorias_lista":
+        return ListaCategoriasView(
+            page,
+            on_nova=lambda: _navegar(page, "cadastros_categorias_form"),
+            on_editar=lambda cid: _navegar(
+                page, "cadastros_categorias_form", form_id=cid
+            ),
+        ).build()
+
+    if _view_atual == "cadastros_categorias_form":
+        return FormCategoriaView(
+            page,
+            categoria_id=_form_categoria_id,
+            on_voltar=lambda: _navegar(page, "cadastros_categorias_lista"),
+            on_salvar=lambda: _navegar(page, "cadastros_categorias_lista"),
         ).build()
 
     # Default: Dashboard. Cada view do shell carrega a própria topbar
@@ -349,6 +427,11 @@ def _build_sidebar(page: ft.Page) -> ft.Container:
                 on_click=on_click,
             )
         )
+
+        # Injeta o accordion "Cadastros" logo após "Delivery" (entre
+        # "Delivery" e "Estoque" na ordem visual do menu).
+        if rotulo == "Delivery":
+            controles_menu.extend(_build_item_cadastros(page))
 
     itens_menu = ft.Column(controls=controles_menu, spacing=4)
 
@@ -434,6 +517,167 @@ def _build_sidebar(page: ft.Page) -> ft.Container:
     )
 
 
+def _toggle_cadastros(page: ft.Page) -> None:
+    """Toggle do accordion "Cadastros" (clique no item pai).
+
+    Inverte ``_cadastros_expandido`` e re-renderiza. Não muda
+    ``_view_atual`` — clicar no item pai só expande/recolhe, não navega.
+    """
+    global _cadastros_expandido
+    _cadastros_expandido = not _cadastros_expandido
+    _renderizar(page)
+
+
+def _build_item_cadastros(page: ft.Page) -> list[ft.Control]:
+    """Constrói o item "Cadastros" (accordion) + subitens se expandido.
+
+    O item pai tem comportamento próprio (toggle do accordion), por isso
+    é construído fora do loop padrão do menu. Visível a TODOS os perfis
+    (cadastros são operação diária — cravado nas decisões da Fase 2).
+
+    Returns:
+        Lista de :class:`ft.Control` na ordem: [item pai, subitens...].
+        Quando recolhido, retorna apenas [item pai].
+    """
+    # Item pai destacado em laranja quando expandido OU quando alguma
+    # view-filha está ativa. Cravado nas decisões da Fase 2 (item 7).
+    em_view_filha = _view_atual in _VIEWS_CADASTROS
+    pai_ativo = _cadastros_expandido or em_view_filha
+
+    # Ícone da seta: > recolhido, ▾ expandido.
+    icone_seta = (
+        ft.Icons.ARROW_DROP_DOWN
+        if _cadastros_expandido
+        else ft.Icons.CHEVRON_RIGHT
+    )
+
+    item_pai = _build_item_menu_com_trailing(
+        rotulo="Cadastros",
+        icone=ft.Icons.FOLDER,
+        ativo=pai_ativo,
+        on_click=lambda e: _toggle_cadastros(page),
+        trailing_icon=icone_seta,
+    )
+
+    controles: list[ft.Control] = [item_pai]
+
+    if _cadastros_expandido:
+        for sub_rotulo, sub_icone, sub_view_id in _SUBITENS_CADASTROS:
+            sub_ativo = (
+                sub_view_id is not None and sub_view_id == _view_atual
+            )
+            # Subitem "Categorias" também fica ativo quando estamos no
+            # form de Categoria (mesma seção lógica).
+            if sub_view_id == "cadastros_categorias_lista":
+                sub_ativo = _view_atual in (
+                    "cadastros_categorias_lista",
+                    "cadastros_categorias_form",
+                )
+
+            if sub_view_id is not None:
+                sub_on_click = (
+                    lambda e, v=sub_view_id: _navegar(page, v)
+                )
+            else:
+                sub_on_click = None
+
+            controles.append(
+                _build_subitem_cadastros(
+                    rotulo=sub_rotulo,
+                    icone=sub_icone,
+                    ativo=sub_ativo,
+                    on_click=sub_on_click,
+                )
+            )
+
+    return controles
+
+
+def _build_subitem_cadastros(
+    rotulo: str,
+    icone: ft.IconData,
+    ativo: bool = False,
+    on_click=None,
+) -> ft.Container:
+    """Subitem do accordion Cadastros — menor que o item principal.
+
+    Estilo (cravado nas decisões da Fase 2):
+        * Altura ~36px (vs 48px do principal).
+        * Padding-left aumentado (~32px) para sensação de indent.
+        * Ícone 16px (vs 20px do principal).
+        * Texto Inter Regular 13px (vs 14px do principal).
+        * Cor: COR_CINZA_400 se inativo, COR_TERCIARIA se ativo
+          (sobre fundo laranja).
+    """
+    cor_texto = theme.COR_TERCIARIA if ativo else theme.COR_CINZA_400
+    bg = theme.COR_PRIMARIA if ativo else None
+
+    return ft.Container(
+        content=ft.Row(
+            controls=[
+                ft.Icon(icon=icone, color=cor_texto, size=16),
+                ft.Text(
+                    rotulo,
+                    color=cor_texto,
+                    size=13,
+                    weight=ft.FontWeight.W_400,
+                    expand=True,
+                ),
+            ],
+            spacing=10,
+        ),
+        bgcolor=bg,
+        padding=ft.Padding.only(left=32, right=12, top=8, bottom=8),
+        border_radius=theme.BORDER_RADIUS_BOTAO,
+        ink=True,
+        on_click=on_click,
+    )
+
+
+def _build_item_menu_com_trailing(
+    rotulo: str,
+    icone: ft.IconData,
+    ativo: bool = False,
+    on_click=None,
+    trailing_icon: ft.IconData | None = None,
+) -> ft.Container:
+    """Variante de :func:`_build_item_menu` com trailing icon customizável.
+
+    Usada pelo item "Cadastros" (accordion) para mostrar seta ▾ vs >.
+    Quando ``trailing_icon=None``, comporta-se como :func:`_build_item_menu`.
+    """
+    cor_texto = theme.COR_TERCIARIA
+    bg = theme.COR_PRIMARIA if ativo else None
+
+    controls: list[ft.Control] = [
+        ft.Icon(icon=icone, color=cor_texto, size=20),
+        ft.Text(
+            rotulo,
+            color=cor_texto,
+            size=theme.FONTE_TAMANHO_LABEL,
+            weight=ft.FontWeight.W_500,
+            expand=True,
+        ),
+    ]
+    if trailing_icon is not None:
+        controls.append(
+            ft.Icon(
+                icon=trailing_icon,
+                color=theme.COR_TERCIARIA if ativo else theme.COR_CINZA_400,
+                size=18,
+            )
+        )
+
+    return ft.Container(
+        content=ft.Row(controls=controls, spacing=12),
+        bgcolor=bg,
+        padding=ft.Padding.symmetric(horizontal=12, vertical=10),
+        border_radius=theme.BORDER_RADIUS_BOTAO,
+        ink=True,
+        on_click=on_click,
+    )
+
+
 def _build_item_menu(
     rotulo: str,
     icone: ft.IconData,
@@ -458,15 +702,6 @@ def _build_item_menu(
     cor_texto = theme.COR_TERCIARIA
     bg = theme.COR_PRIMARIA if ativo else None
 
-    # Item "Cadastros" recebe chevron à direita para sinalizar submenu futuro.
-    trailing: ft.Control | None = None
-    if rotulo == "Cadastros":
-        trailing = ft.Icon(
-            icon=ft.Icons.CHEVRON_RIGHT,
-            color=theme.COR_CINZA_400,
-            size=18,
-        )
-
     conteudo_row = ft.Row(
         controls=[
             ft.Icon(icon=icone, color=cor_texto, size=20),
@@ -477,8 +712,7 @@ def _build_item_menu(
                 weight=ft.FontWeight.W_500,
                 expand=True,
             ),
-        ]
-        + ([trailing] if trailing is not None else []),
+        ],
         spacing=12,
     )
 
