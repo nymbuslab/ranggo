@@ -42,7 +42,7 @@ Bibliotecas adicionais só podem ser introduzidas com confirmação do usuário.
 
 ## Estrutura de pastas (NÃO violar)
 
-```
+```text
 oui-chef/
 ├── PROJETO.md
 ├── CLAUDE.md
@@ -70,7 +70,7 @@ oui-chef/
 
 **Regra:** view nunca acessa banco direto. Sempre passa por `service`, que usa `repository`.
 
-```
+```text
 view → service → repository → model
 ```
 
@@ -89,7 +89,7 @@ O arquivo `src/ui/theme.py` deve **espelhar exatamente** o que está em `PROJETO
 Quando for implementar uma tela, **primeiro abrir o protótipo correspondente** em `prototipos/`:
 
 | Tela | Protótipo |
-|---|---|
+| --- | --- |
 | Login | `prototipos/01-login.png` |
 | Dashboard / Home | `prototipos/02-dashboard.png` |
 | Listagem de cadastro (genérica) | `prototipos/03-listagem-cadastro.png` |
@@ -129,6 +129,7 @@ Muitas telas do sistema **não terão protótipo dedicado** (ex: cadastro de Mes
 ## Padrões de código
 
 ### Geral
+
 - **Sempre** usar type hints (parâmetros e retorno).
 - **Sempre** usar docstrings em funções públicas (estilo Google).
 - Nomes em **português** para entidades de domínio (Cliente, Venda, Prato). Nomes técnicos em **inglês** (repository, service, get_by_id).
@@ -166,7 +167,7 @@ Para queries ORM normais, continue usando `select(Model)` — só raw SQL precis
 A documentação espalhada na web (e até parte do Context7) ainda mostra exemplos com a API antiga do Flet. Estas migrações foram descobertas no smoke test da Fase 0 ao quebrar em runtime — toda view nova **deve** usar a coluna "Atual":
 
 | Antigo (NÃO usar) | Atual (USAR) | Contexto |
-|---|---|---|
+| --- | --- | --- |
 | `ft.app(target=...)` | `ft.run(main=...)` | Entry point do app (`ft.app` deprecada desde 0.80.0) |
 | `ft.Icon(name=...)` | `ft.Icon(icon=...)` | Parâmetro do widget `Icon` |
 | `ft.ElevatedButton(text="X")` | `ft.ElevatedButton(content="X")` | Conteúdo do botão (vale para todos os botões: `FilledButton`, `OutlinedButton`, `TextButton`, etc.) |
@@ -329,18 +330,21 @@ class CategoriaRepository:
 ```
 
 ### Services — regras de negócio
+
 - Recebem `Session` no construtor.
 - Validam dados ANTES de chamar o repository.
 - Levantam exceções de domínio próprias (`EstoqueInsuficienteError`, `LoginInvalidoError`).
 - Não conhecem Flet — nunca importam `flet`.
 
 ### UI / Flet
+
 - Cada view em um arquivo separado dentro de `src/ui/views/`.
 - Componentes reutilizáveis em `src/ui/components/`.
 - Cores e fontes vêm de `src/ui/theme.py` — **não** hardcodar cor em view.
 - View dispara service e mostra resultado/erro; não contém lógica de negócio.
 
 ### Tratamento de erros
+
 - Exceções de domínio em `src/utils/exceptions.py`.
 - View captura exceção do service e mostra dialog/snackbar.
 - Nunca deixar `except: pass` silencioso.
@@ -411,6 +415,7 @@ Toda implementação relevante deve ser registrada. Padrão **Keep a Changelog**
 Toda mudança vai primeiro em `[Unreleased]`. Quando uma fase fecha, vira uma versão (`[0.1.0] - 2026-MM-DD`).
 
 **Exemplo de entrada:**
+
 ```markdown
 ## [Unreleased]
 ### Added
@@ -419,6 +424,7 @@ Toda mudança vai primeiro em `[Unreleased]`. Quando uma fase fecha, vira uma ve
 ```
 
 NÃO registrar:
+
 - Pequenos ajustes de formatação.
 - Renomeação interna de variáveis.
 - Correção de typo em comentário.
@@ -464,6 +470,7 @@ Isso vai economizar muito contexto em sessões futuras. Não é necessário pra 
 ## Em caso de dúvida
 
 **SEMPRE perguntar** em vez de assumir. Especialmente quando:
+
 - A tarefa pode ser interpretada de duas formas.
 - Falta informação de regra de negócio.
 - Surgir necessidade de uma biblioteca nova.

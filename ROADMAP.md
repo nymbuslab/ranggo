@@ -3,6 +3,7 @@
 > Visão estratégica do projeto: onde estamos, para onde vamos, e por quê.
 >
 > **Outras referências:**
+>
 > - O QUE/COMO funciona: ver `PROJETO.md`.
 > - PADRÕES técnicos: ver `CLAUDE.md`.
 > - O QUE estou fazendo agora: ver `PROGRESSO.md`.
@@ -21,7 +22,7 @@
 ## Visão Geral das Fases
 
 | Fase | Tema | Status | Tag prevista |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 0 | Fundação | ✅ Concluída | v0.1.0 + v0.1.1 |
 | 1 | Autenticação | ✅ Concluída | v0.2.0 |
 | 2 | Cadastros | 🔜 Próxima | v0.3.0 |
@@ -289,8 +290,8 @@ Documentados quando a fase iniciar (escopo amplo demais para cravar hoje).
 
 Tarefas pequenas que não pertencem a nenhuma fase específica, mas precisam ser endereçadas em algum momento:
 
-- [ ] Lint markdown em `CLAUDE.md` e `CHANGELOG.md` (warnings de espaçamento, language em code fences, etc).
-- [ ] Logo SVG real na sidebar (✅ resolvido na v0.1.1).
+- [x] ~~Lint markdown em `CLAUDE.md` e `CHANGELOG.md`~~ (✅ resolvido após Fase 1: `.markdownlint.json` na raiz + auto-fix via markdownlint-cli2 + fixes manuais nas tabelas).
+- [x] ~~Logo SVG real na sidebar~~ (✅ resolvido na v0.1.1).
 - [ ] ICO multi-resolução para empacotamento (✅ resolvido — 16/32/48/256 em `assets/logo/`).
 - [ ] Push do repositório para remote (GitHub privado ou similar) — sem isso, projeto não tem backup.
 - [ ] Configurar pytest + primeiros testes unitários (decisão adiada — sem usuário ainda, prioridade baixa).

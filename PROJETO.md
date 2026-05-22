@@ -26,7 +26,7 @@ Inspirado em sistemas como o **Consumer**, foca em três pilares:
 ## 2. Stack Técnica
 
 | Camada | Tecnologia |
-|---|---|
+| --- | --- |
 | Linguagem | Python 3.11+ |
 | UI | Flet (baseado em Flutter) |
 | Banco de dados | SQLite (arquivo único) |
@@ -51,12 +51,14 @@ Inspirado em sistemas como o **Consumer**, foca em três pilares:
 **Fonte única: Inter** (Google Fonts).
 
 Pesos utilizados:
+
 - **Regular (400)** — corpo de texto, descrições, labels secundários.
 - **Medium (500)** — labels de campos, textos de tabela, nomes em listagens.
 - **SemiBold (600)** — títulos de seção, valores em destaque, botões.
 - **Bold (700)** — títulos principais, valores monetários grandes, métricas do dashboard.
 
 Tamanhos padrão:
+
 - Título principal de tela: **24px / SemiBold**
 - Título de seção: **18px / SemiBold**
 - Subtítulo / Label: **14px / Medium**
@@ -66,7 +68,7 @@ Tamanhos padrão:
 
 ### 3.2 Paleta de Cores
 
-```
+```text
 PRIMÁRIA       #FF6600   Laranja Ranggo — CTAs, destaques, ativo
 SECUNDÁRIA     #0D0D0D   Preto — sidebar, textos principais
 TERCIÁRIA      #FFFFFF   Branco — fundo de conteúdo
@@ -111,7 +113,7 @@ O símbolo do Ranggo é um **ícone de talheres cruzados** (garfo + colher) na c
 
 Os protótipos foram gerados no **Google Stitch**. Eles ficam em `prototipos/` na raiz do projeto:
 
-```
+```text
 prototipos/
 ├── 01-login.png
 ├── 02-dashboard.png
@@ -149,6 +151,7 @@ Distinção fundamental do sistema:
 Tabela de ligação entre **prato** e **insumos** com a quantidade de cada insumo necessária para preparar uma unidade do prato.
 
 Permite:
+
 - Cálculo automático de **custo** do prato.
 - Baixa automática de estoque dos insumos ao vender.
 - Análise de margem (custo vs preço de venda).
@@ -188,6 +191,7 @@ A venda suporta **desconto manual** aplicado pelo operador (apenas perfis com pe
 Para auditoria contábil e rastreabilidade, **toda venda finalizada é vinculada a um caixa** (turno operacional) aberto por um operador.
 
 **Conceito:**
+
 - **Caixa** = sessão de trabalho no PDV (financeiro), com início (abertura) e fim (fechamento).
 - Apenas **um caixa pode estar aberto por vez** (sistema single-machine).
 - O caixa é o **único ponto de entrada de dinheiro** do restaurante. Todas as frentes operacionais (comanda, balcão, delivery) convergem para o caixa no momento do pagamento.
@@ -205,6 +209,7 @@ Para auditoria contábil e rastreabilidade, **toda venda finalizada é vinculada
 ```
 
 **Estados da venda:**
+
 - `aberta` — pedido em construção (comanda em mesa, delivery em rota, balcão sendo montado).
 - `pendente_pagamento` — chegou no caixa, aguarda confirmação.
 - `finalizada` — pagamento confirmado. **Único estado que conta no fechamento de caixa.**
@@ -213,6 +218,7 @@ Para auditoria contábil e rastreabilidade, **toda venda finalizada é vinculada
 **Vinculação `vendas.caixa_id`:** a venda nasce **sem caixa** (na frente operacional). Recebe `caixa_id` apenas ao ser finalizada. Comanda aberta no turno A mas paga no turno B vai pro caixa B (operador que efetivamente recebeu o dinheiro).
 
 **Fluxo do caixa:**
+
 1. **Abertura**: operador faz login → se não há caixa aberto, tela "Abrir Caixa" pede valor inicial em dinheiro (fundo de troco) → caixa criado e vinculado ao usuário.
 2. **Durante o turno**: todas as vendas finalizadas pelo operador acumulam no caixa aberto. Sangrias e estornos também.
 3. **Fechamento**: operador clica "Fechar Caixa" → sistema mostra resumo por forma de pagamento → pede valor real contado em dinheiro → calcula divergência → registra e faz logout.
@@ -281,7 +287,7 @@ Nada de UI relacionada a comissão é construído antes da definição completa 
 
 ## 6. Modelo de Dados (visão lógica)
 
-```
+```text
 usuarios ──┐
            └─→ vendas (operador)
 perfis ──→ usuarios
@@ -319,7 +325,7 @@ movimentacao_estoque ──→ produtos / insumos
 ### Tabelas principais
 
 | Tabela | Campos-chave |
-|---|---|
+| --- | --- |
 | `usuarios` | id, nome, login, senha_hash, perfil_id, ativo |
 | `perfis` | id, nome (Admin/Gerente/Caixa) |
 | `permissoes` | id, codigo, descricao |

@@ -14,11 +14,6 @@ Aguardando início da Fase 2 (Cadastros).
 
 ## Próximos Passos
 
-### Débitos técnicos da Fase 0 (carregar pra Fase 2)
-
-- [ ] Limpeza de warnings de lint Markdown em `CLAUDE.md` e `CHANGELOG.md`
-- [ ] Substituir ícone placeholder `ft.Icons.RESTAURANT` por logo SVG de talheres cruzados em `assets/`
-
 ### Fase 2 — Cadastros (P1)
 
 - [ ] (P1) Componentes reutilizáveis emergentes: `badge_status`, `linha_tabela`, `selector_data`, etc (adicionar ao `src/ui/components.py` conforme padrões surgem)
