@@ -232,6 +232,90 @@ Dimensões iniciais antes do render: `width=1280, height=720, min_width=1280, mi
 
 Contexto histórico: ver `CHANGELOG.md [Unreleased]`.
 
+### Componentes UI padronizados — REGRA OBRIGATÓRIA
+
+Views NUNCA constroem `AlertDialog`, `SnackBar`, `ElevatedButton`, `TextButton`, `TextField` sem padding/expand, `Container` de form, topbar ou cabeçalhos manualmente. Sempre passam por `src/ui/components.py`.
+
+#### Funções disponíveis
+
+**Layout de tela:**
+
+- `components.topbar(titulo, acao_direita?)` — topbar padronizada de toda tela do shell. Fundo branco, border-bottom, altura 80px, padding horizontal 32, vertical 16. Título Inter SemiBold 28px à esquerda.
+- `components.card_form(campos, botoes, largura?)` — container do card branco de formulário (sem título — título é do topbar).
+- `components.campo_linha_dupla(esquerda, direita)` — 2 campos lado a lado com `expand=1` cada.
+- `components.cabecalho_pagina(titulo, acao_direita?)` — **[DEPRECATED]** alias de `topbar`. Será removida.
+
+**Botões:**
+
+- `components.botao_primario(texto, on_click, icone?)` — ação principal (laranja COR_PRIMARIA).
+- `components.botao_secundario(texto, on_click)` — ação auxiliar (cinza COR_CINZA_100).
+- `components.botao_perigo(texto, on_click)` — ação destrutiva (vermelho COR_ERRO).
+- `components.botao_sucesso(texto, on_click)` — ação positiva especial (verde COR_SUCESSO).
+
+**Feedback:**
+
+- `components.dialog_confirmacao(...)` — Dialog modal confirmar/cancelar.
+- `components.snackbar_erro(mensagem)` — feedback de erro.
+- `components.snackbar_sucesso(mensagem)` — feedback de sucesso.
+
+#### Regras absolutas (NUNCA violar)
+
+**1. Topbar consistente em toda tela do shell:**
+Toda view do shell (Dashboard, Lista de Usuários, Form de Usuário, e TODAS as views futuras) renderiza `components.topbar()` como primeiro elemento. NUNCA inventar header próprio. NUNCA mudar altura/padding/cor da topbar entre telas. Trocar entre telas deve ser TRANSIÇÃO FLUIDA — só muda título e conteúdo abaixo.
+
+**2. Modais sempre branco puro:**
+`AlertDialog` deve ter `bgcolor=theme.COR_TERCIARIA` explícito. Sem isso, Material 3 do Flet tonaliza automaticamente o fundo (rose/peach claro). Usar `components.dialog_confirmacao()` que já garante isso.
+
+**3. Cores semânticas de botões primários:**
+
+- LARANJA (`botao_primario`) é o DEFAULT: Salvar, Confirmar, Ativar, Fechar Caixa, Aplicar, Novo X. Ações positivas ou neutras.
+- VERMELHO (`botao_perigo`) SOMENTE para ações destrutivas irreversíveis: Desativar, Excluir, Cancelar Venda.
+- VERDE (`botao_sucesso`) RESERVADO para finalizar transação no PDV (Fase 3+). Não usar em CRUD básico.
+
+Em `dialog_confirmacao`, a função `_botao_por_cor` mapeia COR_PRIMARIA → `botao_primario`, COR_ERRO → `botao_perigo`, COR_SUCESSO → `botao_sucesso`. Decisão da cor é do caller, baseado na semântica acima.
+
+**4. Pares de botões sempre mesmo componente:**
+NUNCA misturar `TextButton` com `ElevatedButton` no mesmo par de ações. Cancelar + Salvar = SEMPRE `[botao_secundario, botao_primario]`. Os 2 devem ter exatamente o mesmo tamanho/padding, diferindo apenas em cor.
+
+**5. TextField em forms sempre expand=True:**
+Em forms padronizados (dentro de `card_form`), `TextField` NUNCA tem width fixo. Use `expand=True` para preencher a largura disponível do card. A Column interna do `card_form` tem `horizontal_alignment=STRETCH` que ativa esse comportamento.
+
+**6. Forms centralizados horizontalmente, não verticalmente:**
+Forms começam no topo (padding-top 32). Centralizam horizontalmente via `card_form` (default 800px). NUNCA centralizar vertical — usuário não quer rolar pra cima ler o título.
+
+**7. Hierarquia entre topbar e card:**
+Topbar cuida do título + ação global da tela. `card_form` cuida do formulário (campos + botões do form). NUNCA misturar — título NÃO vai dentro do card.
+
+**8. Lista vs Form vs Dashboard:**
+
+- Listagens (Usuários, Produtos, etc.): tabela full-width sem card externo. A tabela já é o "container".
+- Forms (Novo/Editar X): card central 800px com campos + botões.
+- Dashboard: card central com widgets/métricas.
+
+TODOS têm o mesmo topbar.
+
+#### Pegadinhas Flet 0.85.1 conhecidas (componentes)
+
+- Material 3 tonaliza componentes não explicitamente configurados (bgcolor, border, color). SEMPRE forçar cores via `theme.*` em `AlertDialog`, Container do card, etc.
+- API de SnackBar: `page.snack_bar = sb` NÃO existe em 0.85.1. Correto: `page.show_dialog(ft.SnackBar(...))`. Por isso há `snackbar_erro` e `snackbar_sucesso` que abstraem esse detalhe.
+- `can_reveal_password=True` em `TextField` expande largura visual (ícone do olho como suffix). Quando dois campos password lado-a-lado, definir `expand=1` em ambos para garantir largura igual.
+- `Column` default tem `horizontal_alignment=CENTER`, NÃO STRETCH. Para campos preencherem 100% da largura, setar `horizontal_alignment=ft.CrossAxisAlignment.STRETCH` explicitamente.
+
+#### Quando adicionar novos componentes
+
+Conforme padrões emergem em novas telas, adicionar componentes ao `components.py`. Exemplos previstos:
+
+- `badge_status(texto, variante)` — pill colorida (Ativo/Inativo, etc.).
+- `card_estatistica(titulo, valor, icone)` — para dashboards.
+- `linha_tabela(...)` — para tabelas padronizadas.
+- `selector_data(...)` — para inputs de data (Fase 5).
+
+NUNCA copiar e colar `AlertDialog`/`SnackBar`/`ElevatedButton`/`TextField` com configuração manual entre views. Sempre passar pelo `components.py`.
+
+#### Razão filosófica
+
+Material 3 do Flet é "mágico" — se você não for explícito, ele decide por você (e nem sempre certo). A camada de componentes FORÇA explicitude e CENTRALIZA padrões. Mudar visual de uma classe de componente é mudar em 1 lugar, não em 40 views.
+
 ### Repositórios — assinatura padrão
 
 ```python

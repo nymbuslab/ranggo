@@ -21,23 +21,43 @@ import flet as ft
 from src.database.connection import engine
 from src.database.models.usuario import Usuario
 from src.services import sessao
-from src.ui import theme
+from src.ui import components, theme
 from src.ui.views.login_view import LoginView
+from src.ui.views.usuarios.form_usuario_view import FormUsuarioView
+from src.ui.views.usuarios.lista_usuarios_view import ListaUsuariosView
 
 
 # Itens do menu lateral. Ordem reflete o protótipo prototipos/02-dashboard.png.
-# (rotulo, icone). O item "Dashboard" começa marcado como ativo.
-_ITENS_MENU: list[tuple[str, ft.IconData]] = [
-    ("Dashboard", ft.Icons.SPACE_DASHBOARD),
-    ("Vendas", ft.Icons.POINT_OF_SALE),
-    ("Comandas", ft.Icons.RECEIPT_LONG),
-    ("Delivery", ft.Icons.DELIVERY_DINING),
-    ("Cadastros", ft.Icons.FOLDER),
-    ("Estoque", ft.Icons.INVENTORY_2),
-    ("Relatórios", ft.Icons.BAR_CHART),
-    ("Usuários", ft.Icons.PEOPLE),
-    ("Configurações", ft.Icons.SETTINGS),
+# (rotulo, icone, view_id). ``view_id=None`` → item placeholder visual sem
+# navegação (será implementado em fases futuras). Itens condicionais de
+# perfil são filtrados em ``_build_sidebar`` (ex.: "Usuários" só p/ Admin).
+_ITENS_MENU: list[tuple[str, ft.IconData, str | None]] = [
+    ("Dashboard", ft.Icons.SPACE_DASHBOARD, "dashboard"),
+    ("Vendas", ft.Icons.POINT_OF_SALE, None),         # Fase 3
+    ("Comandas", ft.Icons.RECEIPT_LONG, None),        # Fase 4
+    ("Delivery", ft.Icons.DELIVERY_DINING, None),     # Fase 5
+    ("Cadastros", ft.Icons.FOLDER, None),             # Fase 2 (submenu)
+    ("Estoque", ft.Icons.INVENTORY_2, None),          # Fase 2
+    ("Relatórios", ft.Icons.BAR_CHART, None),         # Fase 5
+    ("Usuários", ft.Icons.PEOPLE, "usuarios_lista"),  # Fase 1 (só Admin)
+    ("Configurações", ft.Icons.SETTINGS, None),       # Fase 5
 ]
+
+
+# ---------------------------------------------------------------------------
+# Estado de navegação (módulo-level, mesmo padrão da ``sessao``)
+#
+# É estado **de UI** (qual view está visível), não de autenticação. Vive
+# aqui em ``app.py`` em vez de ``sessao.py`` porque é específico da
+# camada de apresentação e tem acoplamento com ``_renderizar``.
+# ---------------------------------------------------------------------------
+
+# View atualmente em exibição. Resetada para "dashboard" a cada logout.
+_view_atual: str = "dashboard"
+
+# ``usuario_id`` repassado ao :class:`FormUsuarioView` em modo EDITAR.
+# ``None`` significa modo CRIAR (quando ``_view_atual == "usuarios_form"``).
+_form_usuario_id: int | None = None
 
 
 def main(page: ft.Page) -> None:
@@ -145,6 +165,7 @@ def _renderizar(page: ft.Page) -> None:
         1. Startup, a partir de :func:`main`.
         2. Após login bem-sucedido (callback da :class:`LoginView`).
         3. Após logout (handler do botão "Fechar Caixa").
+        4. Navegação interna do shell (via :func:`_navegar`).
 
     Limpa ``page.controls`` antes de adicionar a nova árvore e chama
     ``page.update`` para refletir a troca.
@@ -152,12 +173,38 @@ def _renderizar(page: ft.Page) -> None:
     Args:
         page: Página Flet ativa.
     """
+    global _view_atual, _form_usuario_id
+
     page.controls.clear()
     if sessao.esta_logado():
         page.add(_build_shell(page))
     else:
+        # Logout: reseta estado de navegação para que o próximo login
+        # comece sempre no Dashboard, não na última view visitada.
+        _view_atual = "dashboard"
+        _form_usuario_id = None
         page.add(_build_login(page))
     page.update()
+
+
+def _navegar(
+    page: ft.Page,
+    nova_view: str,
+    form_usuario_id: int | None = None,
+) -> None:
+    """Troca a view ativa do shell e re-renderiza.
+
+    Args:
+        page: Página Flet ativa.
+        nova_view: Identificador da view destino. Valores aceitos:
+            ``"dashboard"``, ``"usuarios_lista"``, ``"usuarios_form"``.
+        form_usuario_id: Em ``"usuarios_form"``, ``None`` para modo
+            CRIAR e ``int`` para EDITAR. Ignorado nas demais views.
+    """
+    global _view_atual, _form_usuario_id
+    _view_atual = nova_view
+    _form_usuario_id = form_usuario_id
+    _renderizar(page)
 
 
 def _build_login(page: ft.Page) -> ft.Control:
@@ -179,11 +226,16 @@ def _build_login(page: ft.Page) -> ft.Control:
 
 
 def _build_shell(page: ft.Page) -> ft.Control:
-    """Monta o shell autenticado (sidebar + topbar + área de conteúdo).
+    """Monta o shell autenticado (sidebar + área de conteúdo dinâmica).
+
+    A área de conteúdo é despachada por :func:`_build_conteudo` baseado
+    em :data:`_view_atual`. Views internas (Usuários) trazem o próprio
+    page header e dispensam a topbar do shell; o Dashboard mantém a
+    topbar do protótipo original.
 
     Args:
-        page: Página Flet ativa, repassada à sidebar para que o botão
-            "Fechar Caixa" possa abrir o Dialog de confirmação.
+        page: Página Flet ativa, repassada à sidebar e às views para
+            ``show_dialog``, ``page.update`` e o botão "Fechar Caixa".
 
     Returns:
         :class:`ft.Row` raiz do shell.
@@ -191,18 +243,41 @@ def _build_shell(page: ft.Page) -> ft.Control:
     return ft.Row(
         controls=[
             _build_sidebar(page),
-            ft.Column(
-                controls=[
-                    _build_topbar("Dashboard"),
-                    _build_conteudo(),
-                ],
-                spacing=0,
-                expand=True,
-            ),
+            _build_conteudo(page),
         ],
         spacing=0,
         expand=True,
     )
+
+
+def _build_conteudo(page: ft.Page) -> ft.Control:
+    """Roteador da área central: escolhe a view por :data:`_view_atual`.
+
+    Args:
+        page: Página Flet ativa, repassada às views.
+
+    Returns:
+        Control raiz da view selecionada.
+    """
+    if _view_atual == "usuarios_lista":
+        return ListaUsuariosView(
+            page,
+            on_novo_usuario=lambda: _navegar(page, "usuarios_form", None),
+            on_editar_usuario=lambda uid: _navegar(page, "usuarios_form", uid),
+        ).build()
+
+    if _view_atual == "usuarios_form":
+        return FormUsuarioView(
+            page,
+            usuario_id=_form_usuario_id,
+            on_voltar=lambda: _navegar(page, "usuarios_lista"),
+            on_salvar=lambda: _navegar(page, "usuarios_lista"),
+        ).build()
+
+    # Default: Dashboard. Cada view do shell carrega a própria topbar
+    # via ``components.topbar(...)`` (regra cravada: chrome consistente
+    # entre Dashboard, Lista de Usuários, Form de Usuário, etc.).
+    return _build_dashboard_placeholder()
 
 
 # ---------------------------------------------------------------------------
@@ -236,17 +311,46 @@ def _build_sidebar(page: ft.Page) -> ft.Container:
         alignment=ft.MainAxisAlignment.START,
     )
 
-    itens_menu = ft.Column(
-        controls=[
+    # ``usuario`` é resolvido logo abaixo (rodapé) — antecipo aqui só
+    # o perfil para filtrar itens condicionais ao papel.
+    usuario_logado = sessao.usuario_atual()
+    eh_admin = (
+        usuario_logado is not None
+        and usuario_logado.perfil.nome == "Admin"
+    )
+
+    controles_menu: list[ft.Control] = []
+    for rotulo, icone, view_id in _ITENS_MENU:
+        # "Usuários" é restrito a Admin (gating na UI; service também
+        # protege ações específicas via PermissaoNegadaError).
+        if rotulo == "Usuários" and not eh_admin:
+            continue
+
+        if view_id == "usuarios_lista":
+            # Item ativo tanto na lista quanto no form (mesma seção).
+            ativo = _view_atual in ("usuarios_lista", "usuarios_form")
+        else:
+            ativo = view_id is not None and view_id == _view_atual
+
+        # Itens placeholder (view_id None) ficam clicáveis sem efeito —
+        # quando suas fases chegarem, basta plugar o ``_navegar``.
+        if view_id is not None:
+            # Capturar view_id por default-arg para não fechar sobre a
+            # variável de loop (clássico).
+            on_click = lambda e, v=view_id: _navegar(page, v)
+        else:
+            on_click = None
+
+        controles_menu.append(
             _build_item_menu(
                 rotulo=rotulo,
                 icone=icone,
-                ativo=(i == 0),  # primeiro item (Dashboard) começa ativo
+                ativo=ativo,
+                on_click=on_click,
             )
-            for i, (rotulo, icone) in enumerate(_ITENS_MENU)
-        ],
-        spacing=4,
-    )
+        )
+
+    itens_menu = ft.Column(controls=controles_menu, spacing=4)
 
     # Rodapé: usuário autenticado da sessão + botão "Fechar Caixa".
     # ``_build_sidebar`` só é chamado de dentro de ``_build_shell``, que
@@ -334,6 +438,7 @@ def _build_item_menu(
     rotulo: str,
     icone: ft.IconData,
     ativo: bool = False,
+    on_click=None,
 ) -> ft.Container:
     """Constrói um item de menu da sidebar.
 
@@ -343,6 +448,9 @@ def _build_item_menu(
         ativo: Se ``True``, item recebe fundo laranja e texto branco
             (estado selecionado). Caso contrário, fundo transparente
             com hover sutil.
+        on_click: Handler ``(e) -> None``. Quando ``None``, o item
+            continua exibindo ripple mas não navega (placeholder de
+            features futuras).
 
     Returns:
         :class:`ft.Container` configurado para representar o item.
@@ -380,63 +488,7 @@ def _build_item_menu(
         padding=ft.Padding.symmetric(horizontal=12, vertical=10),
         border_radius=theme.BORDER_RADIUS_BOTAO,
         ink=True,  # ripple ao clicar — feedback visual mesmo sem callback
-    )
-
-
-# ---------------------------------------------------------------------------
-# Topbar
-# ---------------------------------------------------------------------------
-
-def _build_topbar(titulo: str) -> ft.Container:
-    """Constrói a topbar (64px, fundo branco, borda inferior cinza)."""
-    titulo_widget = ft.Text(
-        titulo,
-        size=theme.FONTE_TAMANHO_TITULO_PRINCIPAL,
-        weight=ft.FontWeight.W_600,
-        color=theme.COR_SECUNDARIA,
-    )
-
-    # Ações à direita: ícone de notificação + botão "+ Nova Venda".
-    # Placeholders visuais; sem callback nesta fase.
-    acoes_direita = ft.Row(
-        controls=[
-            ft.IconButton(
-                icon=ft.Icons.NOTIFICATIONS_OUTLINED,
-                icon_color=theme.COR_CINZA_600,
-            ),
-            ft.ElevatedButton(
-                content="Nova Venda",
-                icon=ft.Icons.ADD,
-                color=theme.COR_TERCIARIA,
-                bgcolor=theme.COR_PRIMARIA,
-                height=theme.ALTURA_BOTAO,
-                style=ft.ButtonStyle(
-                    shape=ft.RoundedRectangleBorder(
-                        radius=theme.BORDER_RADIUS_BOTAO,
-                    ),
-                ),
-            ),
-        ],
-        spacing=12,
-        alignment=ft.MainAxisAlignment.END,
-    )
-
-    return ft.Container(
-        height=theme.ALTURA_TOPBAR,
-        bgcolor=theme.COR_TERCIARIA,
-        padding=ft.Padding.symmetric(horizontal=24, vertical=8),
-        border=ft.Border.only(
-            bottom=ft.BorderSide(width=1, color=theme.COR_CINZA_200),
-        ),
-        content=ft.Row(
-            controls=[
-                titulo_widget,
-                ft.Container(expand=True),
-                acoes_direita,
-            ],
-            spacing=0,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-        ),
+        on_click=on_click,
     )
 
 
@@ -444,8 +496,13 @@ def _build_topbar(titulo: str) -> ft.Container:
 # Área de conteúdo
 # ---------------------------------------------------------------------------
 
-def _build_conteudo() -> ft.Container:
-    """Área de conteúdo da Fase 0: card central 'Fundação OK'."""
+def _build_dashboard_placeholder() -> ft.Control:
+    """Dashboard placeholder com topbar padronizada + card 'Fundação OK'.
+
+    Topbar via :func:`components.topbar` para garantir chrome consistente
+    com Lista de Usuários, Form de Usuário e demais views do shell.
+    O botão "Nova Venda" é placeholder (sem callback) até a Fase 3.
+    """
     card = ft.Container(
         width=480,
         bgcolor=theme.COR_TERCIARIA,
@@ -484,12 +541,28 @@ def _build_conteudo() -> ft.Container:
         ),
     )
 
-    return ft.Container(
+    area_central = ft.Container(
         bgcolor=theme.COR_CINZA_100,
         padding=32,
         expand=True,
         alignment=ft.Alignment.CENTER,
         content=card,
+    )
+
+    return ft.Column(
+        controls=[
+            components.topbar(
+                "Dashboard",
+                acao_direita=components.botao_primario(
+                    "Nova Venda",
+                    on_click=lambda e: None,  # placeholder Fase 3
+                    icone=ft.Icons.ADD,
+                ),
+            ),
+            area_central,
+        ],
+        spacing=0,
+        expand=True,
     )
 
 
@@ -506,7 +579,9 @@ def _on_fechar_caixa(page: ft.Page) -> None:
     """
     # Em Flet 0.85.1 a API correta é page.show_dialog(dialog) /
     # page.pop_dialog() — page.open()/page.close() não existem nesta
-    # versão (foram introduzidos em uma release mais nova).
+    # versão (foram introduzidos em uma release mais nova). Usamos o
+    # componente padrão para manter o visual consistente com os demais
+    # dialogs de confirmação do sistema (Desativar/Ativar usuário, etc).
     def _confirmar(e: ft.ControlEvent) -> None:
         page.pop_dialog()
         sessao.encerrar()
@@ -515,26 +590,16 @@ def _on_fechar_caixa(page: ft.Page) -> None:
     def _cancelar(e: ft.ControlEvent) -> None:
         page.pop_dialog()
 
-    dialog = ft.AlertDialog(
-        modal=True,
-        title=ft.Text("Fechar Caixa"),
-        content=ft.Text(
-            "Deseja realmente fechar o caixa e sair do sistema?"
-        ),
-        actions=[
-            ft.TextButton("Cancelar", on_click=_cancelar),
-            ft.ElevatedButton(
-                content="Fechar Caixa",
-                on_click=_confirmar,
-                bgcolor=theme.COR_ERRO,
-                color=theme.COR_TERCIARIA,
-                style=ft.ButtonStyle(
-                    shape=ft.RoundedRectangleBorder(
-                        radius=theme.BORDER_RADIUS_BOTAO,
-                    ),
-                ),
-            ),
-        ],
-        actions_alignment=ft.MainAxisAlignment.END,
+    # Fechar Caixa é apenas logout — não destrói dado nenhum. Usa
+    # laranja (padrão do app). Vermelho fica reservado para destrutivas
+    # irreversíveis (Desativar, Excluir, Cancelar Venda).
+    page.show_dialog(
+        components.dialog_confirmacao(
+            titulo="Fechar Caixa",
+            mensagem="Deseja realmente fechar o caixa e sair do sistema?",
+            texto_botao_confirmar="Fechar Caixa",
+            cor_botao_confirmar=theme.COR_PRIMARIA,
+            on_confirmar=_confirmar,
+            on_cancelar=_cancelar,
+        )
     )
-    page.show_dialog(dialog)

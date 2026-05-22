@@ -30,8 +30,8 @@ import flet as ft
 from src.database.connection import get_session
 from src.database.models.usuario import Usuario
 from src.services.usuario_service import UsuarioService
-from src.ui import theme
-from src.utils.exceptions import PermissaoNegadaError
+from src.ui import components, theme
+from src.utils.exceptions import PermissaoNegadaError, SenhaFracaError
 
 
 # ---------------------------------------------------------------------------
@@ -61,12 +61,16 @@ class ListaUsuariosView:
             page,
             on_novo_usuario=callback_novo,
             on_editar_usuario=callback_editar,
-            on_trocar_senha=callback_senha,
         )
         page.add(view.build())
 
     Após criar/editar usuário em outra view, o caller deve invocar
     :meth:`recarregar` para refletir as mudanças.
+
+    A ação **trocar senha** é tratada por modal inline dentro da própria
+    view (:meth:`_abrir_modal_trocar_senha`) — não precisa de callback
+    externo, porque é uma operação self-contained sem necessidade de
+    navegação ou contexto adicional do caller.
     """
 
     def __init__(
@@ -74,7 +78,6 @@ class ListaUsuariosView:
         page: ft.Page,
         on_novo_usuario: Callable[[], None],
         on_editar_usuario: Callable[[int], None],
-        on_trocar_senha: Callable[[int], None],
     ) -> None:
         """Cria a view.
 
@@ -84,13 +87,10 @@ class ListaUsuariosView:
             on_novo_usuario: Callback do botão "+ Novo Usuário".
             on_editar_usuario: Callback do ícone de edição na linha,
                 recebe ``usuario_id``.
-            on_trocar_senha: Callback do ícone de chave na linha,
-                recebe ``usuario_id``.
         """
         self._page = page
         self._on_novo_usuario = on_novo_usuario
         self._on_editar_usuario = on_editar_usuario
-        self._on_trocar_senha = on_trocar_senha
 
         # Estado em memória.
         self._usuarios: list[Usuario] = []
@@ -149,38 +149,16 @@ class ListaUsuariosView:
             weight=ft.FontWeight.W_400,
         )
 
-        # Header da página (título + CTA).
-        page_header = ft.Container(
-            height=80,
-            bgcolor=theme.COR_TERCIARIA,
-            padding=ft.Padding.symmetric(horizontal=24, vertical=16),
-            border=ft.Border.only(
-                bottom=ft.BorderSide(width=1, color=theme.COR_CINZA_200),
-            ),
-            content=ft.Row(
-                controls=[
-                    ft.Text(
-                        "Usuários",
-                        size=28,
-                        weight=ft.FontWeight.W_600,
-                        color=theme.COR_SECUNDARIA,
-                    ),
-                    ft.Container(expand=True),
-                    ft.ElevatedButton(
-                        content="Novo Usuário",
-                        icon=ft.Icons.ADD,
-                        bgcolor=theme.COR_PRIMARIA,
-                        color=theme.COR_TERCIARIA,
-                        height=theme.ALTURA_BOTAO,
-                        style=ft.ButtonStyle(
-                            shape=ft.RoundedRectangleBorder(
-                                radius=theme.BORDER_RADIUS_BOTAO,
-                            ),
-                        ),
-                        on_click=lambda e: self._on_novo_usuario(),
-                    ),
-                ],
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        # Header via topbar padrão do shell — mesmo chrome de todas as
+        # outras telas. O wrapper Container customizado anterior foi
+        # eliminado: components.topbar já cuida de bg branco, border
+        # bottom, altura 80px e padding 32/16.
+        page_header = components.topbar(
+            "Usuários",
+            acao_direita=components.botao_primario(
+                "Novo Usuário",
+                on_click=lambda e: self._on_novo_usuario(),
+                icone=ft.Icons.ADD,
             ),
         )
 
@@ -408,7 +386,9 @@ class ListaUsuariosView:
                         icon_color=theme.COR_CINZA_600,
                         icon_size=18,
                         tooltip="Trocar senha",
-                        on_click=lambda e, uid=usuario.id: self._on_trocar_senha(uid),
+                        on_click=lambda e, uid=usuario.id, nome=usuario.nome, login=usuario.login: (
+                            self._abrir_modal_trocar_senha(uid, nome, login)
+                        ),
                     ),
                     ft.IconButton(
                         icon=ft.Icons.BLOCK if usuario.ativo else ft.Icons.PLAY_CIRCLE,
@@ -540,15 +520,23 @@ class ListaUsuariosView:
     # ------------------------------------------------------------------
 
     def _toggle_status(self, usuario: Usuario) -> None:
-        """Abre dialog confirmando ativar/desativar; aplica via service."""
+        """Abre dialog confirmando ativar/desativar; aplica via service.
+
+        Usa o :func:`components.dialog_confirmacao` para garantir o
+        mesmo visual do modal "Fechar Caixa" e demais confirmações
+        destrutivas do sistema.
+        """
         if usuario.ativo:
+            # Desativar é destrutivo (interrompe acesso): mantém vermelho.
             titulo = "Desativar usuário"
             acao_label = "Desativar"
             cor_acao = theme.COR_ERRO
         else:
+            # Reativar não é destrutivo: usa laranja (padrão do app).
+            # Verde fica reservado para finalizar transação (PDV, Fase 3).
             titulo = "Ativar usuário"
             acao_label = "Ativar"
-            cor_acao = theme.COR_SUCESSO
+            cor_acao = theme.COR_PRIMARIA
 
         mensagem = f"Tem certeza que deseja {acao_label.lower()} '{usuario.nome}'?"
 
@@ -578,38 +566,202 @@ class ListaUsuariosView:
         def _cancelar(e: ft.ControlEvent) -> None:
             self._page.pop_dialog()
 
+        self._page.show_dialog(
+            components.dialog_confirmacao(
+                titulo=titulo,
+                mensagem=mensagem,
+                texto_botao_confirmar=acao_label,
+                cor_botao_confirmar=cor_acao,
+                on_confirmar=_confirmar,
+                on_cancelar=_cancelar,
+            )
+        )
+
+    # ------------------------------------------------------------------
+    # Modal: Trocar senha (Admin troca senha de qualquer usuário)
+    # ------------------------------------------------------------------
+
+    def _abrir_modal_trocar_senha(
+        self,
+        usuario_id: int,
+        usuario_nome: str,
+        usuario_login: str,
+    ) -> None:
+        """Abre Dialog modal "Alterar Senha" — referência ``prototipos/10-modal-trocar-senha.png``.
+
+        Layout:
+            * Box informativo "Usuário: {nome} ({login})" com ícone PERSON.
+            * 2 campos password com ``can_reveal_password``.
+            * Helper text "A senha deve conter no mínimo 6 caracteres."
+            * [Cancelar] + [Salvar Nova Senha] no rodapé.
+
+        Args:
+            usuario_id: Id do usuário alvo.
+            usuario_nome: Nome do usuário (para exibir no box informativo
+                e no SnackBar de sucesso).
+            usuario_login: Login do usuário (para exibir no box informativo).
+        """
+        # Cores forçadas: Material 3 tonaliza fill/border via
+        # ``color_scheme_seed`` por baixo dos panos. Setamos ``filled=False``,
+        # ``bgcolor=COR_TERCIARIA`` e bordas explícitas (#E5E5E5 → #FF6600
+        # no foco) para garantir o look "branco + cinza + laranja vivo".
+        campo_senha = ft.TextField(
+            label="Nova Senha",
+            hint_text="Digite a nova senha",
+            password=True,
+            can_reveal_password=True,
+            width=420,
+            border_radius=theme.BORDER_RADIUS_INPUT,
+            border_color=theme.COR_CINZA_200,
+            focused_border_color=theme.COR_PRIMARIA,
+            filled=False,
+            bgcolor=theme.COR_TERCIARIA,
+            text_size=theme.FONTE_TAMANHO_CORPO,
+        )
+        campo_confirmar = ft.TextField(
+            label="Confirmar Nova Senha",
+            hint_text="Confirme a nova senha",
+            password=True,
+            can_reveal_password=True,
+            width=420,
+            border_radius=theme.BORDER_RADIUS_INPUT,
+            border_color=theme.COR_CINZA_200,
+            focused_border_color=theme.COR_PRIMARIA,
+            filled=False,
+            bgcolor=theme.COR_TERCIARIA,
+            text_size=theme.FONTE_TAMANHO_CORPO,
+        )
+        texto_erro = ft.Text(
+            value="",
+            color=theme.COR_ERRO,
+            size=theme.FONTE_TAMANHO_CORPO,
+            weight=ft.FontWeight.W_500,
+            visible=False,
+        )
+
+        # Box informativo do usuário alvo.
+        box_usuario = ft.Container(
+            bgcolor=theme.COR_CINZA_100,
+            border_radius=8,
+            padding=ft.Padding.symmetric(horizontal=12, vertical=12),
+            content=ft.Row(
+                controls=[
+                    ft.Icon(
+                        icon=ft.Icons.PERSON,
+                        color=theme.COR_CINZA_600,
+                        size=18,
+                    ),
+                    ft.Text(
+                        "Usuário:",
+                        color=theme.COR_CINZA_600,
+                        size=theme.FONTE_TAMANHO_CORPO,
+                        weight=ft.FontWeight.W_400,
+                    ),
+                    ft.Text(
+                        f"{usuario_nome} ({usuario_login})",
+                        color=theme.COR_SECUNDARIA,
+                        size=theme.FONTE_TAMANHO_CORPO,
+                        weight=ft.FontWeight.W_600,
+                    ),
+                ],
+                spacing=8,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+        )
+
+        # Helper text com requisito de senha.
+        helper_text = ft.Row(
+            controls=[
+                ft.Icon(
+                    icon=ft.Icons.INFO_OUTLINE,
+                    color=theme.COR_CINZA_400,
+                    size=14,
+                ),
+                ft.Text(
+                    "A senha deve conter no mínimo 6 caracteres.",
+                    size=13,
+                    color=theme.COR_CINZA_400,
+                    weight=ft.FontWeight.W_400,
+                ),
+            ],
+            spacing=6,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        )
+
+        def _salvar(e: ft.ControlEvent) -> None:
+            nova = campo_senha.value or ""
+            conf = campo_confirmar.value or ""
+
+            if nova != conf:
+                texto_erro.value = "Senhas não conferem."
+                texto_erro.visible = True
+                self._page.update()
+                return
+
+            try:
+                with get_session() as session:
+                    service = UsuarioService(session)
+                    service.trocar_senha(usuario_id, nova)
+            except SenhaFracaError as ex:
+                texto_erro.value = str(ex)
+                texto_erro.visible = True
+                self._page.update()
+                return
+            except Exception as ex:
+                texto_erro.value = f"Erro inesperado: {ex}"
+                texto_erro.visible = True
+                self._page.update()
+                return
+
+            self._page.pop_dialog()
+            self._page.show_dialog(
+                components.snackbar_sucesso(
+                    f"Senha de '{usuario_nome}' atualizada."
+                )
+            )
+
+        def _cancelar(e: ft.ControlEvent) -> None:
+            self._page.pop_dialog()
+
         dialog = ft.AlertDialog(
             modal=True,
-            title=ft.Text(titulo),
-            content=ft.Text(mensagem),
+            bgcolor=theme.COR_TERCIARIA,  # mata o tom pastel do Material 3
+            title=ft.Text(
+                "Alterar Senha",
+                color=theme.COR_SECUNDARIA,
+                weight=ft.FontWeight.W_600,
+            ),
+            content=ft.Column(
+                controls=[
+                    box_usuario,
+                    ft.Container(height=16),
+                    campo_senha,
+                    ft.Container(height=12),
+                    campo_confirmar,
+                    ft.Container(height=8),
+                    helper_text,
+                    texto_erro,
+                ],
+                tight=True,
+                spacing=0,
+                width=460,
+            ),
             actions=[
-                ft.TextButton("Cancelar", on_click=_cancelar),
-                ft.ElevatedButton(
-                    content=acao_label,
-                    on_click=_confirmar,
-                    bgcolor=cor_acao,
-                    color=theme.COR_TERCIARIA,
-                    style=ft.ButtonStyle(
-                        shape=ft.RoundedRectangleBorder(
-                            radius=theme.BORDER_RADIUS_BOTAO,
-                        ),
-                    ),
-                ),
+                components.botao_secundario("Cancelar", _cancelar),
+                components.botao_primario("Salvar Nova Senha", _salvar),
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
         self._page.show_dialog(dialog)
 
+    # ------------------------------------------------------------------
+    # SnackBar de erro (usada por _toggle_status)
+    # ------------------------------------------------------------------
+
     def _mostrar_erro(self, mensagem: str) -> None:
         """Exibe SnackBar vermelho com a mensagem de erro.
 
-        Flet 0.85.1 expõe :class:`ft.SnackBar` como ``DialogControl`` —
-        o padrão correto é ``page.show_dialog(snack_bar)``, mesmo método
-        usado para :class:`ft.AlertDialog`. ``page.snack_bar = ...`` e
-        ``page.show_snack_bar(...)`` **não existem** nesta versão.
+        Usa :func:`components.snackbar_erro` para consistência visual com
+        os demais SnackBars de erro do sistema.
         """
-        snack = ft.SnackBar(
-            content=ft.Text(mensagem, color=theme.COR_TERCIARIA),
-            bgcolor=theme.COR_ERRO,
-        )
-        self._page.show_dialog(snack)
+        self._page.show_dialog(components.snackbar_erro(mensagem))
