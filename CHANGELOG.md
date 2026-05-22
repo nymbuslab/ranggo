@@ -18,6 +18,78 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+_Nada no momento._
+
+---
+
+## [0.2.0] - 2026-05-22 — Fase 1: Autenticação
+
+### Added
+
+#### Camada de autenticação e sessão
+- `UsuarioRepository` e `PerfilRepository` (CRUD padrão + `buscar_por_login`/`buscar_por_nome`/`listar_ativos`).
+- 6 subclasses de `RanggoError`: `AutenticacaoError` (com `LoginInvalidoError`, `UsuarioInativoError`, `PermissaoNegadaError`) e `ValidacaoError` (com `NomeDuplicadoError`, `SenhaFracaError`).
+- `AuthService` com bcrypt: `criar_hash` (política ≥6 chars), `verificar_senha` (timing-attack resistant via `bcrypt.checkpw`), `autenticar` (mensagem genérica pra evitar enumeração de logins).
+- `src/services/sessao.py` — singleton em memória do usuário logado (`iniciar/encerrar/usuario_atual/esta_logado/requer_perfil`), thread-safe via `threading.Lock`.
+- Seed expandido: 3 permissões iniciais (`cadastrar_usuario`, `acessar_relatorios`, `aplicar_desconto`) + amarrações (Admin=todas, Gerente=2, Caixa=0) + usuário Admin (`admin`/`admin123`, hash via `AuthService`). Idempotente.
+
+#### UI da autenticação
+- `LoginView` fiel a `prototipos/01-login.png` (50/50 preto/branco, formulário 400px, erro inline em vermelho, foco automático, Enter submete, callback `on_login_success` agnóstico).
+- Roteamento Login ↔ Shell em `src/ui/app.py` via `_renderizar(page)` baseado em `sessao.esta_logado()`.
+- Sidebar mostra usuário real da sessão: avatar circular laranja com inicial do nome + nome completo + perfil. Eager-load de `perfil` via `joinedload` em `buscar_por_login` evita `DetachedInstanceError`.
+- Botão "Fechar Caixa" da sidebar funciona como logout (placeholder — vira fechamento real de caixa na Fase 3).
+
+#### CRUD de Usuários
+- `UsuarioService` com regras de negócio: validação de login único, senha mínima 6 chars, perfil válido; soft delete (`ativo=False`); guarda de **auto-desativação** (usuário não pode desativar a própria conta); guarda do **último Admin ativo** (não deixa sistema sem admin); `trocar_senha` via `AuthService.criar_hash`.
+- `ListaUsuariosView` — tabela custom com avatar+nome, login, perfil, badge de status (verde "Ativo" / cinza "Inativo"), 3 ações por linha (editar, trocar senha, ativar/desativar). Busca local case-insensitive em nome/login e toggle "Mostrar inativos". Linha de usuário inativo com `opacity=0.6`.
+- `FormUsuarioView` — mesma view atende criar e editar (modo via parâmetro `usuario_id`). No modo CRIAR: Senha + Confirmar Senha lado a lado. No modo EDITAR: sem senha, Switch "Usuário ativo" presente, login `disabled` (chave histórica). Guarda visual de auto-desativação: Switch `disabled` com tooltip se editando o próprio admin logado.
+- Modal "Alterar Senha" inline na lista — box informativo do usuário alvo + 2 campos password com `can_reveal_password` + helper text "≥6 caracteres" + SnackBar verde de sucesso.
+- Item "Usuários" da sidebar visível SÓ pra perfil Admin (filtragem em `_build_sidebar`).
+- Roteamento interno no shell: estado global `_view_atual` + `_form_usuario_id` controla área central. `_navegar(page, view, id)` atualiza estado e re-renderiza. Estado resetado em logout (sempre volta pra Dashboard).
+
+#### Bônus arquitetural emergido durante a fase
+- `src/ui/components.py` — camada de componentes UI padronizados:
+  - `topbar(titulo, acao_direita?)` — header consistente do shell (branco, border-bottom, 80px, padding 32/16, título 28px). **Regra obrigatória**: toda view do shell renderiza como primeiro elemento do Column raiz.
+  - `card_form(campos, botoes, largura=800)` — container centralizado de formulário (sem título — título é do topbar). Column interna com `horizontal_alignment=STRETCH` (campos preenchem 100% da largura).
+  - `botao_primario` / `botao_secundario` / `botao_perigo` / `botao_sucesso` — factory de botões padronizados (mesma forma, varia só cor).
+  - `dialog_confirmacao(...)` — Dialog modal com fundo branco puro (mata tonalização Material 3) + botões via componentes (`_botao_por_cor` despacha conforme `cor_botao_confirmar`).
+  - `snackbar_erro` / `snackbar_sucesso` — feedback via `page.show_dialog`.
+  - `campo_linha_dupla(esquerda, direita)` — Row 50/50 com `expand=1` em ambos.
+  - `cabecalho_pagina` [DEPRECATED] — alias temporário de `topbar`.
+
+#### Protótipos
+- `prototipos/08-listagem-usuarios.png` (Stitch) — referência da lista.
+- `prototipos/09-formulario-usuario.png` (Stitch) — referência do form criar/editar.
+- `prototipos/10-modal-trocar-senha.png` (Stitch) — referência do modal "Alterar Senha".
+
+#### Documentação
+- `tests/teste_manual_fase1.md` — roteiro de 20 testes E2E manuais (5 blocos: autenticação básica, sidebar+sessão, CRUD, troca de perfil, robustez). ~15 min de execução.
+- `CLAUDE.md` ganhou seção "Componentes UI padronizados — REGRA OBRIGATÓRIA" com 8 regras absolutas cravadas (topbar consistente, modais branco puro, cores semânticas de botões, pares de botões mesmo componente, TextField expand=True, forms centralizados horizontal, hierarquia topbar vs card_form, lista vs form vs dashboard) + 4 pegadinhas Flet 0.85.1 documentadas (Material 3 tonalização, API SnackBar, `can_reveal_password` width, `Column` default CENTER) + razão filosófica.
+- Tabela de migrations Flet 0.85.1 no CLAUDE.md ganhou `Padding/Border/Alignment` como classes (não módulos).
+
+### Changed
+- Sidebar rodapé: mock "Usuário Padrão / Sem login" substituído por dados reais da sessão (avatar circular laranja com inicial do `usuario.nome`).
+- Botão "Fechar Caixa" da sidebar virou handler real (dialog de confirmação + logout + volta pra Login), deixando de ser placeholder visual.
+- `_build_topbar` antigo (64px, hardcoded com bell + Nova Venda) removido de `app.py`. Substituído por `components.topbar` (80px, parametrizada, sem bell).
+- `_ITENS_MENU` de `app.py` ganhou `view_id` por item (3-tupla) — itens "vivos" (`Dashboard`, `Usuários`) têm view_id; placeholders das fases futuras têm `None` e ficam clicáveis sem efeito.
+- Lambdas no loop de construção do sidebar capturam `view_id` via default-arg para evitar bug clássico de closure de loop.
+
+### Fixed
+- `DetachedInstanceError` no acesso a `usuario.perfil.nome` na sidebar pós-login. **Causa**: `LoginView._tentar_login` faz `with get_session() as session: auth.autenticar(...)` — o objeto `Usuario` retornado fica detached quando a session fecha. **Solução**: eager-load do relationship `perfil` via `joinedload(Usuario.perfil)` em `UsuarioRepository.buscar_por_login` (único caller que entrega `Usuario` destinado a viver fora da session ativa).
+- API SnackBar do Flet 0.85.1: `page.snack_bar = sb; sb.open = True; page.update()` **não existe** nesta versão (atributo `snack_bar` ausente em `Page`). `SnackBar` herda de `DialogControl` — uso correto: `page.show_dialog(ft.SnackBar(...))`. Documentado no `CLAUDE.md` e centralizado em `components.snackbar_erro`/`snackbar_sucesso`.
+- Material 3 do Flet tonalizava AlertDialogs com fundo rose/peach claro quando `bgcolor` não era explicitamente setado. **Solução**: forçar `bgcolor=COR_TERCIARIA` em todos os dialogs (centralizado em `components.dialog_confirmacao`).
+- Material 3 tonalizava TextFields (fill claro) quando `filled` não era explicitamente `False`. **Solução**: forçar `filled=False` + `bgcolor=COR_TERCIARIA` + bordas explícitas (`border_color=COR_CINZA_200`, `focused_border_color=COR_PRIMARIA`) em todos os campos de form.
+- Campos do form ocupavam só ~50% da largura do card. **Causa**: `Column` default tem `horizontal_alignment=CENTER`, não `STRETCH`. `expand=True` em filho de Column é main-axis (vertical), não cross-axis (horizontal). **Solução**: setar `horizontal_alignment=ft.CrossAxisAlignment.STRETCH` na Column interna do card.
+- Cores semânticas de botões em dialogs: padrão é **laranja** (`COR_PRIMARIA`) para ações neutras/positivas (Confirmar, Salvar, Ativar, **Fechar Caixa** — só logout); **vermelho** (`COR_ERRO`) é reservado a ações destrutivas irreversíveis (Desativar, Excluir); **verde** (`COR_SUCESSO`) é reservado para finalizar transação no PDV (Fase 3). Antes "Ativar usuário" usava verde e "Fechar Caixa" usava vermelho — corrigido.
+
+### Technical
+- ~13 commits durante a Fase 1 (do commit `a45591a` ao `3348dc1`).
+- 10 protótipos no Google Stitch versionados (`01-login` até `10-modal-trocar-senha`).
+
+---
+
+## [0.1.x] - 2026-05-20 — Notas operacionais (rebrand + shutdown)
+
 ### Fixed
 - **Shutdown limpo robusto** (bug "Working..." na 2ª execução). Versão final após 4 iterações:
   - **Causa raiz**: Flet 0.85.1 cria `flet.exe` netos que se desvinculam do parent Python, ficando como top-level invisíveis a `psutil.Process.children(recursive=True)`. Acumulam como zumbis e bloqueiam a próxima execução em "Working...".

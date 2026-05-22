@@ -8,25 +8,20 @@
 
 ## Em Andamento
 
-- **Passo 8 de 10 da Fase 1**: substituir o mock "Usuário Padrão / Sem login" no rodapé da sidebar (linhas ~158-167 de `src/ui/app.py`, função `_build_sidebar`) pelo `usuario.nome` + `usuario.perfil.nome` da sessão atual. Acesso via `sessao.usuario_atual()`. Considerar evitar lazy-load do `perfil` carregando-o eager (`relationship(lazy="joined")` ou query explícita ao logar).
+Aguardando início da Fase 2 (Cadastros).
 
 ---
 
 ## Próximos Passos
 
-### Fase 1 — Autenticação (P0) — finalizar
-
-- [ ] (P0) Passo 9/10: conectar item ativo da sidebar à view ativa (roteamento interno do shell autenticado)
-- [ ] (P0) Passo 10/10: validar fluxo ponta-a-ponta (login → shell com usuário real → logout → volta pro login) e fechar Fase 1 com tag
-
-### Débitos técnicos da Fase 0 (tratar antes de fechar Fase 1)
+### Débitos técnicos da Fase 0 (carregar pra Fase 2)
 
 - [ ] Limpeza de warnings de lint Markdown em `CLAUDE.md` e `CHANGELOG.md`
 - [ ] Substituir ícone placeholder `ft.Icons.RESTAURANT` por logo SVG de talheres cruzados em `assets/`
 
 ### Fase 2 — Cadastros (P1)
 
-- [ ] (P1) Componentes reutilizáveis: `DataTableCustom`, `FormularioPadrao`, `ModalConfirmacao`
+- [ ] (P1) Componentes reutilizáveis emergentes: `badge_status`, `linha_tabela`, `selector_data`, etc (adicionar ao `src/ui/components.py` conforme padrões surgem)
 - [ ] (P1) Cadastro de Categorias (CRUD) — referência `prototipos/03-listagem-cadastro.png` + `04-formulario-cadastro.png`
 - [ ] (P1) Cadastro de Insumos (CRUD) com controle de estoque
 - [ ] (P1) Cadastro de Produtos (CRUD) — itens de revenda direta
@@ -48,6 +43,7 @@
 - [ ] (P1) Alerta de pendências (comandas/deliveries em aberto) ao fechar caixa, com confirmação (R1)
 - [ ] (P1) Cancelamento de venda finalizada apenas por Admin, com motivo obrigatório e movimentação reversa de estoque (R5)
 - [ ] (P1) Controle de troco em vendas em dinheiro: `valor_pago` e `troco` persistidos (R7)
+- [ ] (P1) Botão "Fechar Caixa" da sidebar deixa de ser logout simples (placeholder Fase 1) e vira fechamento real de caixa
 
 ### Fase 4 — Comandas e Mesas (P2)
 
@@ -65,7 +61,9 @@
 
 ## Concluído
 
-### Fase 1 — Autenticação (passos 1-7 de 10) (2026-05-20)
+### Fase 1 — Autenticação (10/10 passos) (2026-05-22)
+
+**Tag:** `v0.2.0`. Total de commits da fase: ~13 (do commit `a45591a` ao `3348dc1`).
 
 - [x] **Passo 1 — repositories** (`d8c1677`): `UsuarioRepository` + `PerfilRepository` com CRUD padrão do CLAUDE.md + métodos `buscar_por_login` (case-sensitive, usado no AuthService), `listar_ativos` (filtra `ativo=True`) e `buscar_por_nome` (resolve `perfil_id` no seed).
 - [x] **Passos 2+3 — exceções + AuthService** (`b14f600`): 6 exceções de Fase 1 (`AutenticacaoError` + 3 subs, `ValidacaoError` + 2 subs); `AuthService.criar_hash` (bcrypt + política ≥6 chars), `verificar_senha` (bcrypt.checkpw, timing-attack resistant), `autenticar` (busca → senha → ativo, mensagem genérica para evitar enumeração).
@@ -73,6 +71,15 @@
 - [x] **Passo 5 — seed expandido** (`28c324d`): 3 permissões (`cadastrar_usuario/acessar_relatorios/aplicar_desconto`) + amarrações (Admin=todas, Gerente=2, Caixa=0) + usuário Admin (`admin`/`admin123`, hash via AuthService), tudo idempotente.
 - [x] **Passo 6 — LoginView** (`a45591a`): tela fiel a `prototipos/01-login.png` (50/50 preto/branco, formulário 400px), erro inline em vermelho, foco automático, Enter submete, callback `on_login_success` (view agnóstica sobre pós-login). 2 pegadinhas Flet 0.85.1 documentadas no CLAUDE.md (`can_reveal_password` expande largura, `Column(tight=True)` desabilita alignment).
 - [x] **Passo 7 — roteamento + bugfix consolidado** (`047c70a`): `main()` virou dispatcher Login↔Shell via `_renderizar(page)`; botão "Fechar Caixa" com `AlertDialog` usando `page.show_dialog/pop_dialog` (API correta do Flet 0.85.1). Diagnóstico exaustivo do bug "Working..." (4 iterações até identificar que `prevent_close=True` é obrigatório + kill global de `flet.exe` via `psutil.process_iter` + remover `page.window.destroy()` async). Maximize confiável aplicando `maximized=True` pós-render. `psutil==7.2.2` adicionado em `requirements.txt` + em `.venv` e `.venv-1`. CLAUDE.md enxugado de 420→384 linhas, CHANGELOG.md ganhou detalhamento técnico das 4 iterações.
+- [x] **Passo 8 — sidebar com usuário real** (`d6a037d`): rodapé da sidebar passa a refletir `sessao.usuario_atual().nome` + `perfil.nome` (avatar circular laranja com inicial). Eager-load do `perfil` via `joinedload` em `UsuarioRepository.buscar_por_login` para evitar `DetachedInstanceError` no shell.
+- [x] **Passo 9.1 — UsuarioService** (`c3bd7d0`): regras de negócio (login único, senha mínima, perfil válido, soft delete via `ativo=False`, guarda de auto-desativação, guarda do último Admin ativo, `trocar_senha` via `AuthService.criar_hash`). Sanity check com 13 asserts validados.
+- [x] **Passo 9.2 — ListaUsuariosView** (`55a9aa6`): tabela custom (avatar+nome, login, perfil, badge status, 3 ações por linha) com busca local case-insensitive em nome/login e toggle "Mostrar inativos". `prototipos/08-listagem-usuarios.png` versionado (`07a9744`) + tree dos `.md` atualizada (`850b93a`).
+- [x] **Passo 9.3 — FormUsuarioView + roteamento no shell + components.py** (`3348dc1`): `FormUsuarioView` (modo criar/editar via `usuario_id`), modal "Alterar Senha" inline, roteamento real no shell (`_view_atual` + `_navegar`), item "Usuários" condicional ao perfil Admin. **Bônus arquitetural emergido**: criação de `src/ui/components.py` (camada de componentes UI padronizados — `topbar`, `card_form`, `botao_primario/secundario/perigo/sucesso`, `dialog_confirmacao`, `snackbar_erro/sucesso`, `campo_linha_dupla`) + 8 regras absolutas de design cravadas no CLAUDE.md. Protótipos `09-formulario-usuario.png` e `10-modal-trocar-senha.png` versionados (`04fc285`).
+- [x] **Passo 10 — fechamento da Fase 1** (este commit): roteiro de testes E2E manuais em `tests/teste_manual_fase1.md` (20 testes), atualização de `PROGRESSO.md`/`CHANGELOG.md`/`ROADMAP.md`, tag `v0.2.0`.
+
+### Fase 1 — Autenticação (passos 1-7 de 10) (2026-05-20)
+
+_Histórico parcial preservado por referência cronológica. Passos 8-10 acima._
 
 ### Rebrand Oui Chef → Ranggo + correção do zumbi Flet (2026-05-20)
 

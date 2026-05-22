@@ -12,9 +12,9 @@
 
 ## Estado Atual
 
-**Versão:** v0.1.1 (Fase 0 + rebrand concluídos)
-**Em andamento:** Fase 1 — Autenticação
-**Última atualização:** 2026-05-20
+**Versão:** v0.2.0 (Fase 1 concluída).
+**Em andamento:** Aguardando início da Fase 2 (Cadastros).
+**Última atualização:** 2026-05-22.
 
 ---
 
@@ -23,7 +23,7 @@
 | Fase | Tema | Status | Tag prevista |
 |---|---|---|---|
 | 0 | Fundação | ✅ Concluída | v0.1.0 + v0.1.1 |
-| 1 | Autenticação | 🔄 Em andamento | v0.2.0 |
+| 1 | Autenticação | ✅ Concluída | v0.2.0 |
 | 2 | Cadastros | 🔜 Próxima | v0.3.0 |
 | 3 | Venda Balcão + Caixa Operacional | 🔜 | v0.4.0 |
 | 4 | Comandas e Mesas | 🔜 | v0.5.0 |
@@ -58,9 +58,11 @@
 
 ---
 
-## Fase 1 — Autenticação 🔄
+## Fase 1 — Autenticação ✅
 
-**Tag prevista:** `v0.2.0`.
+**Tag:** `v0.2.0` (2026-05-22).
+
+**Resumo da entrega:** ver `CHANGELOG.md [0.2.0]` para o detalhamento completo. Em síntese: autenticação por bcrypt, sessão singleton em memória, CRUD de usuários com guardas de auto-desativação e último Admin ativo, modal "Alterar Senha" inline, sidebar condicional ao perfil, roteamento real no shell, e — como bônus emergido — camada de componentes UI padronizados (`src/ui/components.py`) com topbar consistente em todas as views do shell. Roteiro de testes E2E manuais em `tests/teste_manual_fase1.md`.
 
 **Objetivo de negócio:** restringir acesso ao sistema — só usuários cadastrados podem operar. Base pra qualquer feature subsequente (toda venda terá `usuario_id`).
 
@@ -86,16 +88,18 @@
 - Permissões granulares: só perfil agora; emergem orgânicas conforme features chegam.
 - Estado de sessão: módulo singleton (`src/services/sessao.py`), não atributo de `page`.
 
-**Critérios de "pronto":**
+**Critérios de "pronto":** todos cumpridos.
 
 1. ✅ Login com `admin`/`admin123` funciona.
 2. ✅ Tela de Login fiel ao protótipo (validação visual).
-3. ✅ Após login, shell mostra "Admin" e perfil "Admin" no rodapé da sidebar.
+3. ✅ Após login, shell mostra "Administrador" e perfil "Admin" no rodapé da sidebar.
 4. ✅ Clicar "Fechar Caixa" desloga e volta à tela de Login.
 5. ✅ Admin consegue criar novo usuário pela tela de Usuários.
 6. ✅ Logar com usuário recém-criado funciona.
 7. ✅ Usuário com perfil != Admin não vê o item "Usuários" no menu.
 8. ✅ `python main.py` 5 ciclos seguidos sem regressão de shutdown.
+
+**Bônus arquitetural não previsto na fase:** criação de `src/ui/components.py` consolidando 11 componentes UI padronizados (`topbar`, `card_form`, 4 variantes de botão, `dialog_confirmacao`, 2 snackbars, `campo_linha_dupla`, `cabecalho_pagina` deprecated) + 8 regras absolutas de design cravadas no `CLAUDE.md`. Razão: durante o Passo 9.3 o usuário identificou inconsistência visual entre as 3 telas existentes (Dashboard, Lista, Form), o que motivou consolidar a camada de componentes antes de seguir pra Fase 2.
 
 **Débitos previstos para outras fases:**
 
