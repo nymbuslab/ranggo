@@ -14,7 +14,7 @@
 ## Estado Atual
 
 **Versão:** v0.2.0 (Fase 1 concluída).
-**Em andamento:** Aguardando início da Fase 2 (Cadastros).
+**Em andamento:** Fase 2 — Cadastros 🔄 (planejamento + Passo 1 iniciado).
 **Última atualização:** 2026-05-22.
 
 ---
@@ -130,11 +130,56 @@
 
 **Referências de UI:** `prototipos/03-listagem-cadastro.png` (genérica), `04-formulario-cadastro.png` (genérico), `05-ficha-tecnica.png` (específico).
 
-**Decisões em aberto:**
+**Decisões cravadas:**
 
-- Como tratar produtos vendidos a peso (granel) vs. unidade? Provavelmente atributo `vendido_por_unidade: bool`.
-- Ficha técnica permite múltiplos preparos do mesmo prato (variação tamanho P/M/G)? Adiado — começa com 1:1 prato↔ficha.
-- Histórico de preço de custo de insumo? Adiado para Fase 5+.
+<!-- markdownlint-disable MD029 -->
+
+*Decisões de escopo:*
+
+1. **Ordem de implementação** (segue dependência de FK):
+   1. Categoria (fundação, sem dependências).
+   2. Unidade de Medida (CRUD do model já seedado na Fase 0).
+   3. Fornecedor (independente).
+   4. Cliente (independente, com endereço estruturado).
+   5. Produto (depende de Categoria + UnidadeMedida).
+   6. Insumo (depende de Categoria + UnidadeMedida).
+   7. Prato (depende de Categoria).
+   8. Ficha Técnica (depende de Prato + Insumo — relação N:N).
+
+2. **Granularidade**: 1 cadastro = 1 passo. Cada passo entrega `model` + `repository` + `service` + `lista_view` + `form_view` + testes pytest das regras críticas.
+
+*Decisões de modelagem:*
+
+3. **Vendido por unidade vs granel**: ADIADO para Fase 5. No MVP, todos os Produtos são vendidos em unidades inteiras. Quando granel virar requisito real (cliente que vende pão de queijo por peso, etc.), adicionar `produto.vendido_por_unidade: bool` + adaptar PDV.
+
+4. **Estoque por tipo de cadastro**:
+   - Produto: tem `estoque_atual`. Baixa direta na venda.
+   - Insumo: tem `estoque_atual` + `estoque_minimo` + `custo_unitario`. Baixa via ficha técnica.
+   - Prato: SEM estoque próprio. "Estoque" é calculado pela disponibilidade dos insumos da ficha técnica.
+
+5. **Endereço do Cliente**: estruturado em campos separados (`cep`, `rua`, `numero`, `complemento`, `bairro`, `cidade`, `estado`), TODOS opcionais. Cliente que come no restaurante (não delivery) só precisa de nome + telefone. Estrutura preparada para delivery (Fase 5).
+
+6. **Fornecedor**: 5 campos mínimos (`nome` obrigatório, `cnpj`, `telefone`, `contato`, `observacoes` opcionais) + `ativo: bool`. SEM endereço (fornecedor entrega pra ti, não o contrário). SEM email (comunicação com fornecedor de restaurante é telefone/WhatsApp).
+
+*Decisões estruturais:*
+
+7. **Sidebar — submenu "Cadastros"**: clicar "Cadastros" expande submenu accordion inline com os 8 itens (Categorias, Unidades de Medida, Clientes, Fornecedores, Produtos, Insumos, Pratos, Fichas Técnicas). Item pai "Cadastros" destacado em laranja quando qualquer subitem ativo. VISÍVEL A TODOS OS PERFIS (cadastros são operação diária).
+
+8. **Soft delete uniforme**: TODOS os cadastros têm `ativo: bool` (default `True`). Botão "Excluir" da UI faz `ativo=False`. Preserva histórico para auditoria e referências futuras. Nunca DELETE físico via UI.
+
+9. **Nome único nos cadastros operacionais**:
+   - Categoria, Unidade de Medida, Produto, Insumo, Prato: `nome` UNIQUE no banco (validação também no service).
+   - Cliente, Fornecedor: `nome` NÃO único (pessoas/empresas homônimas). Observação na UI quando criar com nome já existente.
+
+*Decisões herdadas dos critérios de pronto (mantidas):*
+
+10. **Ficha técnica 1:1**: cada Prato tem exatamente 1 Ficha Técnica associada. Variações (P/M/G, com/sem queijo) adiadas para Fase 6+. No MVP, "Marmitex P" e "Marmitex G" são Pratos diferentes com fichas técnicas diferentes.
+
+11. **Histórico de preço de custo de insumo**: ADIADO para Fase 5+. No MVP, `custo_unitario` do Insumo é sobrescrito (sem manter snapshots). Quando relatórios virarem requisito real, adicionar tabela `insumo_historico_preco`.
+
+12. **Tela de Produtos mostra estoque, Pratos mostram "Ilimitado"**: nas listas, coluna "Estoque" é número para Produto/Insumo e string "Ilimitado" para Prato (preparado, não tem estoque próprio).
+
+<!-- markdownlint-enable MD029 -->
 
 **Critérios de "pronto":**
 
