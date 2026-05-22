@@ -8,7 +8,7 @@
 
 ## Em Andamento
 
-Aguardando início da Fase 2 (Cadastros).
+_Nada em andamento._ Working tree limpo, débitos transversais resolvidos (5 de 6 — só sobra `mypy --strict`, adiado consciente). Aguardando início da **Fase 2 — Cadastros**.
 
 ---
 
@@ -55,6 +55,16 @@ Aguardando início da Fase 2 (Cadastros).
 ---
 
 ## Concluído
+
+### Pós-v0.2.0 — Limpeza de débitos transversais (2026-05-22)
+
+4 commits posteriores à tag `v0.2.0` fechando débitos transversais herdados da Fase 0/1:
+
+- **`af67b44` — `chore(docs)`**: markdownlint zero warnings nos 5 `.md` raiz (criado `.markdownlint.json` + auto-fix + manuais).
+- **`15a904f` — `docs`**: comando `markdownlint-cli2` documentado no `CLAUDE.md` (seção "Lint markdown").
+- **`ab38786` — `test(usuario)`**: 8 testes pytest do `UsuarioService` cobrindo as 5 regras críticas (login único, senha mínima, perfil válido, auto-desativação, último admin) + `trocar_senha` + `desativar`. Infra em `tests/unit/` (`__init__.py`, `conftest.py` com banco SQLite em memória + fixtures, `pytest.ini`). `pytest==8.3.4` adicionado ao `requirements.txt`.
+
+**Débitos transversais**: 5 de 6 resolvidos (lint MD, logo SVG, ICO multi-res, push remote, pytest). Sobra apenas `mypy --strict` (decisão adiada consciente para Fase 6+). Working tree limpo, pronto para Fase 2.
 
 ### Fase 1 — Autenticação (10/10 passos) (2026-05-22)
 
