@@ -294,7 +294,7 @@ Tarefas pequenas que não pertencem a nenhuma fase específica, mas precisam ser
 - [x] ~~Logo SVG real na sidebar~~ (✅ resolvido na v0.1.1).
 - [x] ~~ICO multi-resolução para empacotamento~~ (✅ resolvido — `assets/logo/logo.ico` + `logo_16/32/48.ico`).
 - [x] ~~Push do repositório para remote~~ (✅ resolvido — `origin` em `github.com/nymbuslab/ranggo`, sincronizado desde commit `3348dc1` da Fase 1).
-- [ ] Configurar pytest + primeiros testes unitários (decisão adiada — sem usuário ainda, prioridade baixa).
+- [x] ~~Configurar pytest + primeiros testes unitários~~ (Fase 1 — testes críticos do `UsuarioService` cobertos: criar (login único / senha mínima / perfil válido), atualizar (auto-desativação / último admin), trocar senha, desativar. 8 testes em `tests/unit/test_usuario_service.py`. Expandir conforme novos services nascem nas próximas fases.)
 - [ ] Validação de força do tipo `mypy --strict` (decisão adiada).
 
 ---

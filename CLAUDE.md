@@ -459,6 +459,20 @@ Config em `.markdownlint.json` (raiz). Disables aplicados conscientemente:
 
 ---
 
+## Testes unitários
+
+Rodar todos os testes:
+
+```text
+pytest tests/unit/
+```
+
+Tests pytest cobrem regras críticas de service. Tests E2E manuais estão em `tests/teste_manual_fase1.md` (rodar antes de tag/release).
+
+NUNCA deletar testes ao refatorar — adaptar para nova API se a interface mudou, mas manter cobertura das regras de negócio.
+
+---
+
 ## Convenções de commit (quando o usuário usar git)
 
 Padrão **Conventional Commits**:
