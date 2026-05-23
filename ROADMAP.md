@@ -120,7 +120,7 @@
 **Escopo:**
 
 - Categorias.
-- Unidades de medida (já seedada na Fase 0 — só CRUD aqui se necessário).
+- Unidades de medida (já seedada na Fase 0 — **lista somente-leitura**, ver decisão 2.1 abaixo).
 - Produtos (revenda — Coca, cerveja).
 - Insumos (matérias-primas — arroz, carne).
 - Pratos (preparados — marmitex).
@@ -138,7 +138,7 @@
 
 1. **Ordem de implementação** (segue dependência de FK):
    1. Categoria (fundação, sem dependências).
-   2. Unidade de Medida (CRUD do model já seedado na Fase 0).
+   2. Unidade de Medida (**LISTA SOMENTE-LEITURA** — UMs são cadastro fixo conforme decidido na Fase 0; não tem botão "+ Nova" nem ações de editar/desativar; vista informativa do que existe no sistema).
    3. Fornecedor (independente).
    4. Cliente (independente, com endereço estruturado).
    5. Produto (depende de Categoria + UnidadeMedida).
@@ -146,7 +146,16 @@
    7. Prato (depende de Categoria).
    8. Ficha Técnica (depende de Prato + Insumo — relação N:N).
 
-2. **Granularidade**: 1 cadastro = 1 passo. Cada passo entrega `model` + `repository` + `service` + `lista_view` + `form_view` + testes pytest das regras críticas.
+2. **Granularidade**: 1 cadastro = 1 passo. Cada passo entrega `model` + `repository` + `service` + `lista_view` + `form_view` + testes pytest das regras críticas. **Exceção: Passo 2 (UM) — ver 2.1 abaixo.**
+
+**2.1. Por que UM não tem CRUD** (revertido em 2026-05-22): model `UnidadeMedida` foi criado na Fase 0 com decisão explícita de ser CADASTRO FIXO (docstring textual: *"não criar/remover linhas em runtime — o conjunto é estável durante toda a vida do sistema"*). Razões preservadas:
+
+- UMs são universais (kg é kg em qualquer restaurante).
+- Conjunto SI + comerciais cobre 99% dos casos reais.
+- Cada UM vira FK em Produto/Insumo (Passos 5/6). Permitir CRUD aumenta superfície de bug (duplicação, FK órfã).
+- YAGNI: não temos caso de uso real para UM customizada.
+
+Se em algum momento futuro surgir demanda real (cliente quer "Caixa de 12 unidades" como UM, etc.), promover esse escopo é trivial: schema atual (`sigla`, `descricao`) já é suficiente; basta adicionar `ativo: bool`, criar `repository`/`service`/`form`, e atualizar a view de lista para CRUD completo.
 
 *Decisões de modelagem:*
 
