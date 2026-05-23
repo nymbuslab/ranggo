@@ -18,7 +18,40 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
-_Nada no momento._
+### Added
+
+#### Fase 2 — Cadastros (em andamento — Passos 1-2 de 10)
+
+- **Categoria (CRUD completo, Passo 1/10)** — primeiro cadastro da Fase 2.
+  - Model: `id`, `nome` (`String(100)` UNIQUE), `descricao` (`String(500)` opcional), `ativo` (default `True`), `criado_em`, `atualizado_em` (com `onupdate=func.now()`). Registrado em `src/database/models/__init__.py`.
+  - `CategoriaRepository` — CRUD puro (`listar`, `buscar_por_id`, `buscar_por_nome`, `criar`, `atualizar`, `deletar`) seguindo padrão do `UsuarioRepository`.
+  - `CategoriaService` — regras: nome obrigatório (após `strip`), nome UNIQUE (`NomeDuplicadoError` em conflito), soft delete via `desativar()` (chama `atualizar` com `ativo=False`), `atualizar` permite manter o próprio nome (só bloqueia conflito real).
+  - `ListaCategoriasView` — tabela custom com avatar+nome, descrição truncada (>60 chars com "…"), badge "Ativa/Inativa" (paleta green-100/700 + cinza), ações por linha (editar lápis, toggle bloquear/ativar laranja). Busca local case-insensitive. Toggle "Mostrar inativas" (default OFF). Estado-vazio com ícone `LABEL_OUTLINE` + "Nenhuma categoria encontrada." Linhas inativas com `opacity=0.6`.
+  - `FormCategoriaView` — criar/editar via parâmetro `categoria_id`. Nome obrigatório + Descrição (multiline, `max_lines=4`, `max_length=500`, opcional). Switch "Categoria ativa" só no modo EDITAR. Botões via `components.botao_secundario`/`botao_primario`.
+  - Dialog de Desativar com botão **laranja** (não vermelho) — Categoria não é destrutivo-irreversível (regra cravada: vermelho reservado para Desativar Usuário, Excluir, Cancelar Venda).
+  - 6 testes pytest em 3 classes: `TestCriar` (válido / nome duplicado / nome vazio), `TestAtualizar` (conflito com outra / manter próprio nome), `TestDesativar`. Total geral: 14 passed.
+- **Accordion "Cadastros" na sidebar** (emergiu durante Passo 1):
+  - `_SUBITENS_CADASTROS` — 8 entradas (Categorias funcional + 7 placeholders aguardando Passos 3-8).
+  - `_VIEWS_CADASTROS: frozenset` — usado para destacar item pai quando view-filha está ativa.
+  - `_cadastros_expandido: bool` + `_form_categoria_id: int | None` — novo estado de módulo.
+  - Helpers: `_toggle_cadastros`, `_build_item_cadastros` (retorna `[pai]` ou `[pai, ...subitens]`), `_build_subitem_cadastros` (estilo menor — ícone 16, texto 13, indent 32), `_build_item_menu_com_trailing` (chevron parametrizável: `>` ou `▾` baseado em `_cadastros_expandido`).
+  - **Auto-expansão**: navegar para qualquer view de `_VIEWS_CADASTROS` expande o accordion automaticamente.
+  - Visível a TODOS os perfis (Admin, Gerente, Caixa) — decisão cravada na Fase 2 (cadastros são operação diária).
+  - Estado resetado no logout.
+- **Lista somente-leitura de Unidades de Medida (Passo 2/10)** — `ListaUnidadesMedidaView` sem CRUD.
+  - **Decisão arquitetural**: UM continua sendo cadastro fixo conforme cravado na Fase 0. Vê-se mas não se manipula via UI. Documentado no item 2.1 do ROADMAP.
+  - Banner cinza informativo permanente no topo: "As unidades de medida são padronizadas pelo sistema. Se houver necessidade de unidade customizada, será disponibilizada em Configurações > Sistema em versão futura." Sinaliza escape válvula planejada (Fase 5+).
+  - Tabela com 2 colunas (NOME, SÍMBOLO), 5 linhas seedadas (Grama, Litro, Mililitro, Quilograma, Unidade) ordenadas alfabeticamente por `descricao`. Avatar laranja com inicial + nome + `sigla` em coluna própria. Zebra striping. Rodapé "Total: 5 unidades".
+  - Acesso a dados via `get_session` direto (sem `Service` nem `Repository` próprios — não há regra de negócio para encapsular).
+- **Roteamento estendido**:
+  - `_navegar(page, nova_view, form_id=None)` aceita `form_id` genérico (roteia para `_form_usuario_id` ou `_form_categoria_id` conforme `nova_view`).
+  - 3 ramos novos em `_build_conteudo`: `cadastros_categorias_lista`, `cadastros_categorias_form`, `cadastros_unidades_lista`.
+
+### Changed
+
+- `_ITENS_MENU` em `src/ui/app.py`: item "Cadastros" hardcoded **removido** (agora tratado fora do loop padrão pela função `_build_item_cadastros`, que constrói item pai + subitens conforme `_cadastros_expandido`).
+- `_build_item_menu`: removida lógica especial de chevron para "Cadastros" (agora é responsabilidade do `_build_item_menu_com_trailing`).
+- `ROADMAP.md`: 12 decisões da Fase 2 cravadas (`9e9f323`); Decisão 1 sobre UM revertida (`c9bd051`) — UM volta a ser cadastro fixo, com item 2.1 documentando razões. Parágrafo final de "escape válvula planejada" adicionado na 2.1 (`5fc4358`).
 
 ---
 

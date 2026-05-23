@@ -8,7 +8,20 @@
 
 ## Em Andamento
 
-_Nada em andamento._ Working tree limpo, débitos transversais resolvidos (5 de 6 — só sobra `mypy --strict`, adiado consciente). Aguardando início da **Fase 2 — Cadastros**.
+**Checkpoint salvo em 2026-05-22 21:50**
+
+### Feito nesta sessão
+
+- **Diagnóstico Fase 2** (6 verificações): app boota OK, 14 testes passam, lint zero, models de Fase 2 ainda inexistentes — partida limpa.
+- **12 decisões da Fase 2 cravadas no ROADMAP** (`9e9f323`): ordem por FK, granularidade 1 cadastro/passo, vendido-por-unidade adiado, estoque por tipo, endereço estruturado de Cliente, Fornecedor mínimo, accordion submenu, soft delete uniforme, nome único seletivo, ficha técnica 1:1, sem histórico de custo, Pratos mostram "Ilimitado".
+- **Passo 1 — Categoria (CRUD completo)** (`2750fba`): model + repository + service + `ListaCategoriasView` + `FormCategoriaView` + accordion na sidebar (`_SUBITENS_CADASTROS` com 8 entradas, `_VIEWS_CADASTROS` frozenset, `_build_item_cadastros`/`_build_subitem_cadastros`/`_build_item_menu_com_trailing`) + 6 testes pytest. Total geral: 14 passed.
+- **Reversão da Decisão 1 — UM volta a ser cadastro fixo** (`c9bd051`): adicionado item 2.1 no ROADMAP com 4 razões (YAGNI, universalidade, conjunto SI suficiente, risco de FK órfã) + escape válvula planejada (Configurações > Sistema em Fase 5+).
+- **Passo 2 — `ListaUnidadesMedidaView` read-only** (`5fc4358`): view sem CRUD, banner cinza informativo, tabela de 2 colunas (NOME, SÍMBOLO), 5 linhas seedadas ordenadas alfabeticamente, rodapé "Total: 5 unidades". 3 edits cirúrgicos em `src/ui/app.py`. ROADMAP ganhou parágrafo final na 2.1 documentando a escape válvula.
+
+### Próximo passo
+
+- **Push do commit `5fc4358`** (Passo 2) para sincronizar com `origin/master` — aguardando autorização do usuário (1 commit ahead).
+- Depois: **Passo 3 da Fase 2 — Fornecedor** (primeiro CRUD novo independente após Categoria). Decisão 6 do ROADMAP cravou os 5 campos mínimos: `nome` (obrigatório, **não-unique**), `cnpj`, `telefone`, `contato`, `observacoes` (todos opcionais) + `ativo: bool`. SEM endereço, SEM email. Estrutura: model + repository + service + lista_view + form_view + testes pytest, ligado ao subitem "Fornecedores" do submenu (atualmente `view_id=None`).
 
 ---
 
@@ -16,13 +29,18 @@ _Nada em andamento._ Working tree limpo, débitos transversais resolvidos (5 de 
 
 ### Fase 2 — Cadastros (P1)
 
-- [ ] (P1) Componentes reutilizáveis emergentes: `badge_status`, `linha_tabela`, `selector_data`, etc (adicionar ao `src/ui/components.py` conforme padrões surgem)
-- [ ] (P1) Cadastro de Categorias (CRUD) — referência `prototipos/03-listagem-cadastro.png` + `04-formulario-cadastro.png`
-- [ ] (P1) Cadastro de Insumos (CRUD) com controle de estoque
-- [ ] (P1) Cadastro de Produtos (CRUD) — itens de revenda direta
-- [ ] (P1) Cadastro de Pratos (CRUD) com Ficha Técnica — referência `prototipos/05-ficha-tecnica.png`
-- [ ] (P1) Cadastro de Clientes (CRUD)
-- [ ] (P1) Cadastro de Fornecedores (CRUD)
+_Ordem de implementação cravada na Decisão 1 do ROADMAP (dependência de FK)._
+
+- [x] **Passo 1**: Cadastro de Categorias (CRUD) — `2750fba`.
+- [x] **Passo 2**: Lista somente-leitura de Unidades de Medida — `5fc4358` (UM continua cadastro fixo, ver ROADMAP 2.1).
+- [ ] (P1) **Passo 3**: Cadastro de Fornecedores (CRUD) — 5 campos mínimos, sem endereço, sem email.
+- [ ] (P1) **Passo 4**: Cadastro de Clientes (CRUD) — com endereço estruturado opcional.
+- [ ] (P1) **Passo 5**: Cadastro de Produtos (CRUD) — FK Categoria + UnidadeMedida.
+- [ ] (P1) **Passo 6**: Cadastro de Insumos (CRUD) — FK Categoria + UnidadeMedida, com `estoque_atual`/`estoque_minimo`/`custo_unitario`.
+- [ ] (P1) **Passo 7**: Cadastro de Pratos (CRUD) — FK Categoria, sem estoque próprio (mostra "Ilimitado").
+- [ ] (P1) **Passo 8**: Ficha Técnica (CRUD) — N:N Prato ↔ Insumo, calcula custo automático.
+- [ ] (P1) **Passo 9**: Componentes reutilizáveis emergentes — `badge_status`, `linha_tabela`, `selector_data` (incremental conforme padrões surgem).
+- [ ] (P1) **Passo 10**: Fechamento da Fase 2 — tag `v0.3.0`.
 
 ### Fase 3 — Venda Balcão + Caixa Operacional (P1)
 
@@ -55,6 +73,15 @@ _Nada em andamento._ Working tree limpo, débitos transversais resolvidos (5 de 
 ---
 
 ## Concluído
+
+### Fase 2 — Cadastros (parcial: Passos 1-2 de 10) (2026-05-22)
+
+_Em andamento — versão `v0.3.0` ainda não fechada._
+
+- [x] **12 decisões da Fase 2 cravadas** (`9e9f323`): ordem por FK, granularidade 1 cadastro/passo, vendido-por-unidade adiado (Fase 5), estoque por tipo (Produto/Insumo têm, Prato não), endereço estruturado de Cliente, Fornecedor mínimo, accordion submenu Cadastros visível a todos os perfis, soft delete uniforme, nome único seletivo (operacionais sim, Cliente/Fornecedor não), ficha técnica 1:1, sem histórico de custo de insumo, Pratos mostram "Ilimitado".
+- [x] **Passo 1 — Categoria (CRUD completo)** (`2750fba`): model (`id`, `nome` unique, `descricao` opcional, `ativo`, `criado_em`, `atualizado_em`) + `CategoriaRepository` + `CategoriaService` (`NomeDuplicadoError` em conflito) + `ListaCategoriasView` (tabela com avatar+nome, descricao truncada, badge status, ações editar/desativar; busca local; toggle "Mostrar inativas"; estado-vazio com ícone) + `FormCategoriaView` (Nome obrigatório + Descrição multiline opcional; Switch "Ativa" só no editar). **Accordion "Cadastros" na sidebar** emergiu como bônus arquitetural — submenu expansível inline com 8 entradas, helpers `_build_item_cadastros`/`_build_subitem_cadastros`/`_build_item_menu_com_trailing`, auto-expansão ao navegar para view-filha, estado resetado no logout. 6 testes pytest (criar, duplicado, vazio, atualizar com conflito, atualizar mantendo próprio nome, desativar). Total geral: 14 passed.
+- [x] **Decisão 1 revertida — UM volta a ser cadastro fixo** (`c9bd051`): após investigação técnica, identificado que docstring da Fase 0 cravou textualmente _"não criar/remover linhas em runtime"_. Revertida conscientemente. Adicionado item 2.1 no ROADMAP com 4 razões (universalidade, SI suficiente, FK órfã, YAGNI) + escape válvula planejada (Configurações > Sistema em Fase 5+).
+- [x] **Passo 2 — Lista somente-leitura de Unidades de Medida** (`5fc4358`): `ListaUnidadesMedidaView` sem CRUD, banner cinza informativo no topo ("As unidades de medida são padronizadas pelo sistema. Se houver necessidade de unidade customizada, será disponibilizada em Configurações > Sistema em versão futura."), tabela de 2 colunas (NOME, SÍMBOLO), 5 linhas seedadas ordenadas alfabeticamente, rodapé "Total: 5 unidades". 3 edits cirúrgicos em `src/ui/app.py` (import + subitem ligado ao `view_id` + `_VIEWS_CADASTROS` + ramo em `_build_conteudo`). ROADMAP ganhou parágrafo final na 2.1 documentando a escape válvula.
 
 ### Pós-v0.2.0 — Limpeza de débitos transversais (2026-05-22)
 

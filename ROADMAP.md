@@ -14,7 +14,7 @@
 ## Estado Atual
 
 **Versão:** v0.2.0 (Fase 1 concluída).
-**Em andamento:** Fase 2 — Cadastros 🔄 (planejamento + Passo 1 iniciado).
+**Em andamento:** Fase 2 — Cadastros 🔄 (Passos 1-2 de 10 concluídos; próximo: Passo 3 — Fornecedor).
 **Última atualização:** 2026-05-22.
 
 ---
