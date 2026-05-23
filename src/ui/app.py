@@ -24,6 +24,7 @@ from src.services import sessao
 from src.ui import components, theme
 from src.ui.views.cadastros.form_categoria_view import FormCategoriaView
 from src.ui.views.cadastros.lista_categorias_view import ListaCategoriasView
+from src.ui.views.cadastros.lista_unidades_medida_view import ListaUnidadesMedidaView
 from src.ui.views.login_view import LoginView
 from src.ui.views.usuarios.form_usuario_view import FormUsuarioView
 from src.ui.views.usuarios.lista_usuarios_view import ListaUsuariosView
@@ -56,7 +57,7 @@ _ITENS_MENU: list[tuple[str, ft.IconData, str | None]] = [
 # correspondente. O subitem "Categorias" liga ao Passo 1 da Fase 2.
 _SUBITENS_CADASTROS: list[tuple[str, ft.IconData, str | None]] = [
     ("Categorias", ft.Icons.LABEL, "cadastros_categorias_lista"),
-    ("Unidades de Medida", ft.Icons.STRAIGHTEN, None),    # Passo 2
+    ("Unidades de Medida", ft.Icons.STRAIGHTEN, "cadastros_unidades_lista"),
     ("Clientes", ft.Icons.PEOPLE_OUTLINE, None),          # Passo 4
     ("Fornecedores", ft.Icons.LOCAL_SHIPPING, None),      # Passo 3
     ("Produtos", ft.Icons.INVENTORY_2, None),             # Passo 5
@@ -71,6 +72,7 @@ _SUBITENS_CADASTROS: list[tuple[str, ft.IconData, str | None]] = [
 _VIEWS_CADASTROS: frozenset[str] = frozenset({
     "cadastros_categorias_lista",
     "cadastros_categorias_form",
+    "cadastros_unidades_lista",
 })
 
 
@@ -351,6 +353,9 @@ def _build_conteudo(page: ft.Page) -> ft.Control:
             on_voltar=lambda: _navegar(page, "cadastros_categorias_lista"),
             on_salvar=lambda: _navegar(page, "cadastros_categorias_lista"),
         ).build()
+
+    if _view_atual == "cadastros_unidades_lista":
+        return ListaUnidadesMedidaView(page).build()
 
     # Default: Dashboard. Cada view do shell carrega a própria topbar
     # via ``components.topbar(...)`` (regra cravada: chrome consistente

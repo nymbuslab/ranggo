@@ -157,6 +157,8 @@
 
 Se em algum momento futuro surgir demanda real (cliente quer "Caixa de 12 unidades" como UM, etc.), promover esse escopo é trivial: schema atual (`sigla`, `descricao`) já é suficiente; basta adicionar `ativo: bool`, criar `repository`/`service`/`form`, e atualizar a view de lista para CRUD completo.
 
+**Escape válvula planejada**: se demanda real surgir, criar tela em **Configurações > Sistema** (Fase 5+ ou pós-MVP) com CRUD restrito ao perfil Admin. Solução intermediária que preserva proteção do dropdown sem rigidez total. O banner da `ListaUnidadesMedidaView` já sinaliza essa possibilidade ao usuário.
+
 *Decisões de modelagem:*
 
 3. **Vendido por unidade vs granel**: ADIADO para Fase 5. No MVP, todos os Produtos são vendidos em unidades inteiras. Quando granel virar requisito real (cliente que vende pão de queijo por peso, etc.), adicionar `produto.vendido_por_unidade: bool` + adaptar PDV.
