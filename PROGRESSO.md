@@ -8,7 +8,19 @@
 
 ## Em Andamento
 
-Nada no momento — Passos 1-3 da Fase 2 fechados (3 de 10). Pronto para iniciar Passo 4 (Cliente).
+**Migração para PySide6** (decisão consciente em 2026-05-25).
+
+Razão: Flet 0.85.1 apresenta bugs estruturais em funções básicas (Tab traversal, Material Dropdown focus) — issues upstream do Flutter ([flutter/flutter#131120](https://github.com/flutter/flutter/issues/131120), [#178009](https://github.com/flutter/flutter/issues/178009)). Mitigações via workaround funcionam mas acumulam débito técnico. Migração em 30% do projeto custa ~20-30h vs ~60-100h se feita em 60%+.
+
+Estado do Flet:
+
+- 3 de 10 passos da Fase 2 concluídos.
+- Tag `v0.2.5-flet-final` cravada como checkpoint do estado final.
+- Código preservado em branch `master` deste repositório.
+
+Trabalho continua em **ranggoV2** (PySide6) como projeto separado. Se POC do Login em PySide6 validar viabilidade, migração Fase 0 + 1 + 2 Passos 1-3 será feita lá. Models/Repositories/Services do Ranggo Flet são reaproveitados sem mudança.
+
+Se POC frustrar: aprendizado, volta para Ranggo Flet, aplica Opção A do Dropdown como referência documentada e segue Passo 4.
 
 ---
 

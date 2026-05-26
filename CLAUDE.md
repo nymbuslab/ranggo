@@ -1,6 +1,8 @@
 # CLAUDE.md — Instruções para o Claude Code
 
 > Este arquivo é lido automaticamente pelo Claude Code em toda sessão dentro desta pasta. Define padrões técnicos, ferramentas permitidas e o que **NÃO** fazer.
+>
+> **⚠️ PROJETO PAUSADO** — Desenvolvimento em Flet 0.85.1 foi pausado em 2026-05-25 após Passo 3 da Fase 2 (commit `80745f2`, tag `v0.2.5-flet-final`). Trabalho continua no projeto **ranggoV2** (PySide6) em pasta separada. Este `CLAUDE.md` permanece válido como referência histórica do estado Flet — models, services, repositories, padrões de teste são reaproveitados em ranggoV2 sem mudança. Apenas a camada UI (Flet → PySide6) é refeita.
 
 ---
 

@@ -13,9 +13,9 @@
 
 ## Estado Atual
 
-**Versão:** v0.2.0 (Fase 1 concluída).
-**Em andamento:** Fase 2 — Cadastros 🔄 (Passos 1-2 de 10 concluídos; próximo: Passo 3 — Fornecedor).
-**Última atualização:** 2026-05-22.
+**Versão:** v0.2.5-flet-final (Flet pausado).
+**Em andamento:** Migração para PySide6 — **ranggoV2** (POC Login).
+**Última atualização:** 2026-05-25.
 
 ---
 
@@ -112,6 +112,8 @@
 ---
 
 ## Fase 2 — Cadastros 🔜
+
+> **⚠️ NOTA:** Desenvolvimento em Flet pausado após Passo 3 (commit `80745f2`, tag `v0.2.5-flet-final`). Migração para PySide6 em andamento no projeto **ranggoV2** (pasta separada). Passos 4-10 desta fase serão implementados em PySide6 se a migração validar. Decisão documentada em `PROGRESSO.md`.
 
 **Tag prevista:** `v0.3.0`.
 

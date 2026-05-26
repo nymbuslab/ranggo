@@ -18,6 +18,12 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+### Pausado
+
+- Desenvolvimento em Flet 0.85.1 pausado após Passo 3 da Fase 2 (commit `80745f2`). Razão: bugs estruturais do Flet em funções básicas (Tab traversal, Material Dropdown focus) acumulam débito técnico em cada novo cadastro.
+- Migração para PySide6 iniciada no projeto separado **ranggoV2**.
+- Tag `v0.2.5-flet-final` cravada como checkpoint do estado final do Flet (caso a migração seja revertida).
+
 ### Added
 
 #### Fase 2 — Cadastros (em andamento — Passos 1-3 de 10)
