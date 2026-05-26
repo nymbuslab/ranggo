@@ -345,6 +345,40 @@ def card_form(
     )
 
 
+def proximo_campo(target: ft.TextField) -> Callable:
+    """Retorna handler async que foca o ``target`` — para ``on_submit``.
+
+    Usado em ``on_submit`` de :class:`ft.TextField` em forms para navegar
+    entre campos via Enter (mitigação para limitação do Flet 0.85.1 sem
+    `tabindex` — ver ``CLAUDE.md`` seção "Pegadinhas Flet 0.85.1").
+
+    **CRÍTICO**: :meth:`ft.TextField.focus` é **coroutine async** em Flet
+    0.85.1. Handler sync (lambda) NÃO funciona — Python instancia a
+    coroutine mas o sync-path do Flet (``Control._trigger_event``) não
+    faz ``await``, o garbage collector recolhe a coroutine sem
+    executar, e o foco nunca muda. Esta função retorna handler async
+    correto, que o Flet detecta via ``inspect.iscoroutinefunction`` e
+    executa com ``await``.
+
+    Uso típico::
+
+        self._campo_nome.on_submit = components.proximo_campo(
+            self._campo_login
+        )
+
+    Args:
+        target: o :class:`ft.TextField` (ou outro Control com método
+            ``focus()`` async) que deve receber foco quando Enter for
+            pressionado no campo de origem.
+
+    Returns:
+        Função async ``(e) -> None`` pronta para uso em ``on_submit``.
+    """
+    async def _handler(e):
+        await target.focus()
+    return _handler
+
+
 def campo_linha_dupla(
     esquerda: ft.Control,
     direita: ft.Control,

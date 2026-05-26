@@ -32,7 +32,7 @@ import flet as ft
 from src.database.connection import get_session
 from src.database.models.usuario import Usuario
 from src.services.auth_service import AuthService
-from src.ui import theme
+from src.ui import components, theme
 from src.utils.exceptions import (
     LoginInvalidoError,
     RanggoError,
@@ -168,6 +168,15 @@ class LoginView:
             text_size=theme.FONTE_TAMANHO_CORPO,
             on_change=self._on_campo_change,
             on_submit=lambda e: self._tentar_login(),
+        )
+
+        # Enter no campo Usuario foca campo Senha. Tab escapa pra
+        # sidebar (limitacao do Flet 0.85.1 — ver CLAUDE.md
+        # "Pegadinhas Flet 0.85.1"); Enter eh a navegacao usavel.
+        # focus() eh coroutine async — usar helper que retorna async
+        # handler. Lambda sync NAO funciona (coroutine nao eh awaited).
+        self._campo_login.on_submit = components.proximo_campo(
+            self._campo_senha
         )
 
         link_esqueci = ft.Row(

@@ -192,6 +192,16 @@ Se em algum momento futuro surgir demanda real (cliente quer "Caixa de 12 unidad
 
 <!-- markdownlint-enable MD029 -->
 
+**Melhorias futuras (pós-MVP):**
+
+- **Auto-preenchimento de Fornecedor via API de CNPJ** (Fase 5+ ou pós-MVP): integrar BrasilAPI ou CNPJa para buscar dados do fornecedor a partir do CNPJ digitado (razão social, nome fantasia, endereço, telefone). Hoje todos os campos são preenchidos manualmente. Quando virar dor real (cliente reclamar de digitação excessiva), implementar:
+  - Botão "Buscar" ao lado do campo CNPJ no `FormFornecedorView`.
+  - Worker async com timeout de 5s e fallback manual em caso de falha.
+  - Tratamento de 6 cenários: CNPJ inexistente, baixado, inválido, timeout, rate limit, sem internet.
+  - Decisão filosófica: hoje o Ranggo é 100% offline-first. Essa feature adiciona dependência externa síncrona — avaliar trade-off no momento da implementação.
+
+- **Tab traversal customizado nos forms** (Fase 5+ ou pós-MVP): hoje Tab escapa para a sidebar (limitação do Flet 0.85.1 sem `tabindex`/`FocusScope` — ver `CLAUDE.md` "Pegadinhas Flet 0.85.1"). Workaround atual: Enter navega entre campos via `on_submit`. Solução definitiva: `ft.KeyboardListener` envolvendo o card do form + captura manual de Tab + chamada de `field.focus()`. Requer POC antes de prometer — `KeyDownEvent` em Flet 0.85.1 não expõe `prevent_default()`, e o traversal default do Flutter pode rodar em paralelo. Investigar se `field.focus()` sobrescreve o default sem flicker, e se Shift+Tab vem detectável no evento.
+
 **Critérios de "pronto":**
 
 1. ✅ Cadastro funcional dos 7 modelos acima.

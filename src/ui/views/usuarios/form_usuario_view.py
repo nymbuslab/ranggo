@@ -174,6 +174,37 @@ class FormUsuarioView:
         if not self._modo_criar:
             self._carregar_usuario()
 
+        # Enter como Tab — mitigacao do bug Tab-escapa-pra-sidebar
+        # (limitacao Flet 0.85.1 sem tabindex; ver CLAUDE.md
+        # "Pegadinhas Flet 0.85.1"). focus() eh coroutine async —
+        # usar helper que retorna async handler. Lambda sync NAO
+        # funciona. Dropdown nao aceita on_submit; eh o fim natural
+        # da cadeia em modo EDITAR.
+        if self._modo_criar:
+            assert self._campo_senha is not None
+            assert self._campo_confirmar is not None
+            self._campo_nome.on_submit = components.proximo_campo(
+                self._campo_login
+            )
+            self._campo_login.on_submit = components.proximo_campo(
+                self._campo_senha
+            )
+            self._campo_senha.on_submit = components.proximo_campo(
+                self._campo_confirmar
+            )
+            # Ultimo TextField confirma o form (Criar Usuario).
+            # _salvar eh sync, nao precisa ser handler async.
+            self._campo_confirmar.on_submit = self._salvar
+        else:
+            # Em editar, Login eh disabled e Dropdown.focus() do
+            # Material nao aceita foco programatico fiavelmente (bug
+            # Flutter #131120 — foco escapa pra sidebar via reading-
+            # order). Como Perfil raramente muda em edicao, Enter no
+            # Nome confirma o form direto. Consistente com 'ultimo
+            # campo encadeavel salva' em outros forms.
+            # Ver CLAUDE.md secao 'Pegadinhas Flet 0.85.1'.
+            self._campo_nome.on_submit = self._salvar
+
         # --- Monta a lista de campos a passar para components.card_form ---
         campos: list[ft.Control] = [self._campo_nome, self._campo_login]
 

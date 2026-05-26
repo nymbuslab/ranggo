@@ -23,7 +23,9 @@ from src.database.models.usuario import Usuario
 from src.services import sessao
 from src.ui import components, theme
 from src.ui.views.cadastros.form_categoria_view import FormCategoriaView
+from src.ui.views.cadastros.form_fornecedor_view import FormFornecedorView
 from src.ui.views.cadastros.lista_categorias_view import ListaCategoriasView
+from src.ui.views.cadastros.lista_fornecedores_view import ListaFornecedoresView
 from src.ui.views.cadastros.lista_unidades_medida_view import ListaUnidadesMedidaView
 from src.ui.views.login_view import LoginView
 from src.ui.views.usuarios.form_usuario_view import FormUsuarioView
@@ -59,7 +61,7 @@ _SUBITENS_CADASTROS: list[tuple[str, ft.IconData, str | None]] = [
     ("Categorias", ft.Icons.LABEL, "cadastros_categorias_lista"),
     ("Unidades de Medida", ft.Icons.STRAIGHTEN, "cadastros_unidades_lista"),
     ("Clientes", ft.Icons.PEOPLE_OUTLINE, None),          # Passo 4
-    ("Fornecedores", ft.Icons.LOCAL_SHIPPING, None),      # Passo 3
+    ("Fornecedores", ft.Icons.LOCAL_SHIPPING, "cadastros_fornecedores_lista"),
     ("Produtos", ft.Icons.INVENTORY_2, None),             # Passo 5
     ("Insumos", ft.Icons.GRAIN, None),                    # Passo 6
     ("Pratos", ft.Icons.RESTAURANT_MENU, None),           # Passo 7
@@ -73,6 +75,8 @@ _VIEWS_CADASTROS: frozenset[str] = frozenset({
     "cadastros_categorias_lista",
     "cadastros_categorias_form",
     "cadastros_unidades_lista",
+    "cadastros_fornecedores_lista",
+    "cadastros_fornecedores_form",
 })
 
 
@@ -95,6 +99,11 @@ _form_usuario_id: int | None = None
 # ``None`` significa modo CRIAR (quando ``_view_atual ==
 # "cadastros_categorias_form"``).
 _form_categoria_id: int | None = None
+
+# ``fornecedor_id`` repassado ao :class:`FormFornecedorView` em modo
+# EDITAR. ``None`` significa modo CRIAR (quando ``_view_atual ==
+# "cadastros_fornecedores_form"``).
+_form_fornecedor_id: int | None = None
 
 # Estado de expansão do accordion "Cadastros" na sidebar. Toggle manual ao
 # clicar no item. Auto-expande quando entra numa view-filha de Cadastros
@@ -215,7 +224,7 @@ def _renderizar(page: ft.Page) -> None:
     Args:
         page: Página Flet ativa.
     """
-    global _view_atual, _form_usuario_id, _form_categoria_id, _cadastros_expandido
+    global _view_atual, _form_usuario_id, _form_categoria_id, _form_fornecedor_id, _cadastros_expandido
 
     page.controls.clear()
     if sessao.esta_logado():
@@ -226,6 +235,7 @@ def _renderizar(page: ft.Page) -> None:
         _view_atual = "dashboard"
         _form_usuario_id = None
         _form_categoria_id = None
+        _form_fornecedor_id = None
         _cadastros_expandido = False
         page.add(_build_login(page))
     page.update()
@@ -246,13 +256,16 @@ def _navegar(
         page: Página Flet ativa.
         nova_view: Identificador da view destino. Valores aceitos:
             ``"dashboard"``, ``"usuarios_lista"``, ``"usuarios_form"``,
-            ``"cadastros_categorias_lista"``, ``"cadastros_categorias_form"``.
+            ``"cadastros_categorias_lista"``, ``"cadastros_categorias_form"``,
+            ``"cadastros_unidades_lista"``, ``"cadastros_fornecedores_lista"``,
+            ``"cadastros_fornecedores_form"``.
         form_id: Em forms (``"usuarios_form"``,
-            ``"cadastros_categorias_form"``), ``None`` para modo CRIAR
-            e ``int`` para EDITAR. Roteado para o ``_form_*_id`` correto
-            baseado em ``nova_view``. Ignorado nas demais views.
+            ``"cadastros_categorias_form"``, ``"cadastros_fornecedores_form"``),
+            ``None`` para modo CRIAR e ``int`` para EDITAR. Roteado para
+            o ``_form_*_id`` correto baseado em ``nova_view``. Ignorado
+            nas demais views.
     """
-    global _view_atual, _form_usuario_id, _form_categoria_id, _cadastros_expandido
+    global _view_atual, _form_usuario_id, _form_categoria_id, _form_fornecedor_id, _cadastros_expandido
     _view_atual = nova_view
 
     # Roteia ``form_id`` para o estado correto baseado na view destino.
@@ -262,6 +275,8 @@ def _navegar(
         _form_usuario_id = form_id
     elif nova_view == "cadastros_categorias_form":
         _form_categoria_id = form_id
+    elif nova_view == "cadastros_fornecedores_form":
+        _form_fornecedor_id = form_id
 
     # Auto-expande o accordion quando navega para uma view de Cadastros.
     if nova_view in _VIEWS_CADASTROS:
@@ -356,6 +371,23 @@ def _build_conteudo(page: ft.Page) -> ft.Control:
 
     if _view_atual == "cadastros_unidades_lista":
         return ListaUnidadesMedidaView(page).build()
+
+    if _view_atual == "cadastros_fornecedores_lista":
+        return ListaFornecedoresView(
+            page,
+            on_novo=lambda: _navegar(page, "cadastros_fornecedores_form"),
+            on_editar=lambda fid: _navegar(
+                page, "cadastros_fornecedores_form", form_id=fid
+            ),
+        ).build()
+
+    if _view_atual == "cadastros_fornecedores_form":
+        return FormFornecedorView(
+            page,
+            fornecedor_id=_form_fornecedor_id,
+            on_voltar=lambda: _navegar(page, "cadastros_fornecedores_lista"),
+            on_salvar=lambda: _navegar(page, "cadastros_fornecedores_lista"),
+        ).build()
 
     # Default: Dashboard. Cada view do shell carrega a própria topbar
     # via ``components.topbar(...)`` (regra cravada: chrome consistente
@@ -577,6 +609,11 @@ def _build_item_cadastros(page: ft.Page) -> list[ft.Control]:
                 sub_ativo = _view_atual in (
                     "cadastros_categorias_lista",
                     "cadastros_categorias_form",
+                )
+            elif sub_view_id == "cadastros_fornecedores_lista":
+                sub_ativo = _view_atual in (
+                    "cadastros_fornecedores_lista",
+                    "cadastros_fornecedores_form",
                 )
 
             if sub_view_id is not None:

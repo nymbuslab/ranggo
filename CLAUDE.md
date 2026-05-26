@@ -195,6 +195,22 @@ Comportamentos do Flet 0.85.1 que rendem bugs visuais silenciosos (compilam sem 
 
 - **`ft.Column(tight=True)` desabilita `alignment=ft.MainAxisAlignment.X`.** `tight` faz a Column ocupar apenas o espaço mínimo do conteúdo, então não sobra espaço para o `alignment` distribuir — vira no-op. Para centralizar verticalmente dentro de um Container expansivo, use `tight=False` + `alignment=ft.MainAxisAlignment.CENTER`. Mesma armadilha vale para `Row(tight=True)`.
 
+- **Tab key escapa para a sidebar nos forms do shell.** Flet 0.85.1 não tem `tabindex` nem `FocusScope`/`FocusTraversalPolicy`. A ordem de Tab segue `ReadingOrderTraversalPolicy` do Flutter (geometria visual + ordem da widget tree como desempate). Como a sidebar é o primeiro filho de `Row[sidebar, conteudo]` e fica à esquerda, todos os elementos focusáveis dela (Containers com `on_click` → InkWell + botão "Fechar Caixa") entram na cadeia de Tab antes dos campos do form.
+
+  **Mitigação adotada (Fase 2, Passo 3)**: usar **Enter** como navegação entre campos via `on_submit`. Operador de PDV espera Enter como "próximo" (idiomático em sistemas legados). Tab continua escapando para a sidebar, mas é aceitável — Tab é comportamento de dev/power user, não de operador.
+
+  **Implementação**: cada `TextField` que não é o último recebe `on_submit=lambda e, p=proximo: p.focus()` (o default-arg `p=` captura a referência defensivamente, evitando o clássico bug de closure se o campo for capturado em loop). O último `TextField` da cadeia confirma o form disparando a ação primária (`self._salvar`). Campos `multiline` ficam fora da cadeia — Enter neles insere quebra de linha, comportamento esperado. Dropdowns também ficam fora (não aceitam `on_submit`); a cadeia pode terminar focando o Dropdown (`.focus()` funciona em `ft.Dropdown`).
+
+  **Solução definitiva adiada (Fase 5+ ou pós-MVP)**: `ft.KeyboardListener` envolvendo o card do form, captura manual de Tab e chamada de `field.focus()` programaticamente. Risco técnico: `KeyDownEvent` em Flet 0.85.1 não expõe `prevent_default()` — o traversal default do Flutter pode rodar em paralelo, gerando flicker ou foco duplicado. Requer POC antes de prometer.
+
+  **ATENÇÃO CRÍTICA**: `TextField.focus()` é **coroutine async** em Flet 0.85.1. Handler sync (lambda) NÃO funciona — Python instancia a coroutine mas o sync-path do Flet (`Control._trigger_event`) não faz `await`, o garbage collector recolhe sem executar, e o foco nunca muda. **SEMPRE** usar handler async via helper `components.proximo_campo(target)` (definido em `src/ui/components.py`). NUNCA usar `lambda e: target.focus()` direto. Confirmado empiricamente em 2026-05-25 ao tentar a primeira versão com lambda sync (commit `9ea20db`) — não funcionou em nenhum form; corrigido com helper async no commit seguinte.
+
+  **Bug do Material Dropdown — `focus()` programático não funciona**: `Dropdown.focus()` em Flet 0.85.1 envia a mensagem correta para o Flutter mas o widget Material `DropdownMenu` não acomoda foco programático fiavelmente. O foco escapa para o próximo elemento do reading-order (tipicamente a sidebar). Bug upstream do Flutter ([flutter/flutter#131120](https://github.com/flutter/flutter/issues/131120), [#178009](https://github.com/flutter/flutter/issues/178009)) — fora do nosso controle.
+
+  **Mitigação**: em forms onde Dropdown segue um `TextField` encadeado via Enter, NÃO usar `components.proximo_campo(dropdown)`. Em vez disso, tratar o campo anterior como "último encadeável" e disparar a ação primária do form (`_salvar`).
+
+  **Exemplo aplicado**: `FormUsuarioView` em modo EDITAR. Login é disabled; Perfil é Dropdown. Enter no Nome dispara `_salvar` direto.
+
 ### Verificação de API do Flet 0.85.1
 
 Context7 está desatualizado para Flet (indexa até 0.84.0 e ainda mostra padrões antigos como `page.on_window_event` e `page.window_prevent_close`).

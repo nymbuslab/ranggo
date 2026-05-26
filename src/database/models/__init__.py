@@ -21,6 +21,7 @@ from src.database.models.perfil import Perfil
 from src.database.models.usuario import Usuario
 from src.database.models.unidade_medida import UnidadeMedida
 from src.database.models.categoria import Categoria
+from src.database.models.fornecedor import Fornecedor
 
 __all__ = [
     "Base",
@@ -30,4 +31,5 @@ __all__ = [
     "Usuario",
     "UnidadeMedida",
     "Categoria",
+    "Fornecedor",
 ]

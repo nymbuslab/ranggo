@@ -116,6 +116,17 @@ class FormCategoriaView:
         if not self._modo_criar:
             self._carregar_categoria()
 
+        # Enter como Tab — mitigacao do bug Tab-escapa-pra-sidebar
+        # (limitacao Flet 0.85.1, ver CLAUDE.md "Pegadinhas Flet 0.85.1").
+        # Descricao eh multiline e fica fora da cadeia: Enter em campo
+        # multiline insere quebra de linha, comportamento esperado.
+        # Usuario fecha o form clicando "Salvar" com o mouse.
+        # focus() eh coroutine async — usar helper que retorna async
+        # handler. Lambda sync NAO funciona.
+        self._campo_nome.on_submit = components.proximo_campo(
+            self._campo_descricao
+        )
+
         # Monta lista de campos.
         campos: list[ft.Control] = [self._campo_nome, self._campo_descricao]
         if not self._modo_criar:

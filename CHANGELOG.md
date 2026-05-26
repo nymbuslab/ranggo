@@ -20,7 +20,30 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ### Added
 
-#### Fase 2 — Cadastros (em andamento — Passos 1-2 de 10)
+#### Fase 2 — Cadastros (em andamento — Passos 1-3 de 10)
+
+- **Fornecedor (CRUD completo, Passo 3/10)** — terceiro cadastro da Fase 2.
+  - Model: `id`, `nome` (`String(150)` NOT NULL, **não-unique** — fornecedores podem ter nomes homônimos, decisão Fase 2 #9), `cnpj` (`String(14)` UNIQUE quando preenchido, nullable — SQLite permite múltiplos NULLs em UNIQUE naturalmente), `telefone` (`String(30)` opcional), `contato` (`String(100)` opcional), `observacoes` (`String(1000)` opcional), `ativo` (default `True`), timestamps. Sem endereço. Sem email (decisão Fase 2 #6). Registrado em `src/database/models/__init__.py`.
+  - `src/utils/cnpj.py` — helpers puros: `normalizar_cnpj()` (remove máscara, retorna 14 dígitos ou `None`) e `formatar_cnpj()` (aplica máscara `XX.XXX.XXX/XXXX-XX`, defensivo: retorna input como está se inválido). NÃO valida algoritmo dos dígitos verificadores (decisão MVP).
+  - `FornecedorRepository` — CRUD padrão + `buscar_por_cnpj(cnpj_normalizado)` (sem `buscar_por_nome` — nome não é unique).
+  - `FornecedorService` — regras: nome obrigatório (`strip`), CNPJ normalizado para 14 dígitos puros antes de salvar, `ValueError` se CNPJ tem dígitos mas ≠ 14, UNIQUE de CNPJ via `NomeDuplicadoError` reutilizado (mensagem exibe CNPJ formatado), `atualizar` exclui o próprio id da verificação UNIQUE (permite editar mantendo próprio CNPJ), soft delete via `desativar()`.
+  - `ListaFornecedoresView` — 6 colunas (NOME com avatar+nome, CNPJ formatado, TELEFONE, CONTATO, STATUS verde/cinza, AÇÕES editar/desativar). Busca local case-insensitive em **nome OU CNPJ** — input normalizado antes de comparar com `cnpj` do banco (usuário digitando "12.345" acha "12345678000190"). Toggle "Mostrar inativos". Estado-vazio adaptativo: "Nenhum fornecedor cadastrado." se lista vazia, "Nenhum fornecedor encontrado." se filtro sem resultado. Ícone `LOCAL_SHIPPING_OUTLINED`.
+  - `FormFornecedorView` — 5 campos verticais: Nome obrigatório, CNPJ (max 18, aceita máscara), Telefone (max 30, livre sem normalização), Contato (max 100), Observações (multiline, `max_lines=4`, `max_length=1000`). CNPJ **não é formatado enquanto digita** (evita bugs de cursor) — normalizado só no submit. Em modo EDITAR: CNPJ pré-preenchido formatado via `formatar_cnpj()`. Switch "Fornecedor ativo" só em editar.
+  - Dialog de Desativar com botão **laranja** (categoria, fornecedor, cliente — soft delete não é destrutivo-irreversível, regra cravada).
+  - Sidebar: subitem "Fornecedores" agora aponta para view real (`view_id="cadastros_fornecedores_lista"`). `_VIEWS_CADASTROS` ganhou as 2 entradas novas. Novo estado de módulo `_form_fornecedor_id`. `_build_item_cadastros` ganhou o ramo para destacar "Fornecedores" quando view-filha (lista OU form) está ativa.
+  - 11 testes pytest em 3 classes: `TestCriar` (só nome / completo com CNPJ mascarado normalizado / nome vazio / 2 sem CNPJ não conflita / CNPJ duplicado com mensagem formatada), `TestAtualizar` (manter próprio CNPJ OK / roubar CNPJ alheio erro), `TestUtilCnpj` (normaliza mascarado / normaliza vazio→None inclui "./-" / formata 14 dígitos / formata defensivo). Total geral: **25 passed**.
+
+#### Enter como Tab nos forms (mitigação de bug UX transversal)
+
+- **Bug descoberto e mitigado durante validação visual do Passo 3** — Tab key nos campos de form do shell escapa para a sidebar antes de ir para o próximo campo. Causa: Flet 0.85.1 não tem `tabindex` nem `FocusScope`/`FocusTraversalPolicy`; ordem de Tab segue `ReadingOrderTraversalPolicy` do Flutter (geometria visual + ordem da widget tree). Sidebar como primeiro filho de `Row[sidebar, conteúdo]` fica antes na cadeia. Bug afeta TODOS os forms do shell (Categoria, Usuário, Fornecedor); Login é imune por estar fora do shell.
+- **Mitigação adotada**: usar **Enter** como navegação entre campos via `on_submit`. Operador de PDV espera Enter como "próximo" (idiomático em sistemas legados). Tab continua escapando, mas é aceitável — Tab é comportamento de dev/power user, não operador.
+- Aplicado em 4 forms:
+  - `LoginView` (`src/ui/views/login_view.py`): Usuário → Senha → `_tentar_login()`.
+  - `FormUsuarioView` (`src/ui/views/usuarios/form_usuario_view.py`): modo CRIAR encadeia Nome → Login → Senha → Confirmar → `_salvar`; modo EDITAR pula Login disabled e vai Nome → Perfil (Dropdown, fim da cadeia).
+  - `FormCategoriaView` (`src/ui/views/cadastros/form_categoria_view.py`): Nome → Descrição (multiline; Enter na multiline insere quebra de linha, fim natural).
+  - `FormFornecedorView` (`src/ui/views/cadastros/form_fornecedor_view.py`): Nome → CNPJ → Telefone → Contato → `_salvar` (Observações multiline fora da cadeia).
+- `TextField.on_submit` recebe `lambda e, p=próximo: p.focus()` — o default-arg `p=` captura referência defensivamente (evita bug clássico de closure).
+- **Solução definitiva adiada (Fase 5+/pós-MVP)**: `ft.KeyboardListener` envolvendo o card do form, captura manual de Tab e `field.focus()` programático. Requer POC porque `KeyDownEvent` em Flet 0.85.1 não expõe `prevent_default()` — risco de flicker em paralelo ao traversal default do Flutter. Documentado em `CLAUDE.md` ("Pegadinhas Flet 0.85.1") e em `ROADMAP.md` ("Melhorias futuras (pós-MVP)" da Fase 2).
 
 - **Categoria (CRUD completo, Passo 1/10)** — primeiro cadastro da Fase 2.
   - Model: `id`, `nome` (`String(100)` UNIQUE), `descricao` (`String(500)` opcional), `ativo` (default `True`), `criado_em`, `atualizado_em` (com `onupdate=func.now()`). Registrado em `src/database/models/__init__.py`.

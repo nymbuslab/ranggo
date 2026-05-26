@@ -8,20 +8,7 @@
 
 ## Em Andamento
 
-**Checkpoint salvo em 2026-05-22 21:50**
-
-### Feito nesta sessão
-
-- **Diagnóstico Fase 2** (6 verificações): app boota OK, 14 testes passam, lint zero, models de Fase 2 ainda inexistentes — partida limpa.
-- **12 decisões da Fase 2 cravadas no ROADMAP** (`9e9f323`): ordem por FK, granularidade 1 cadastro/passo, vendido-por-unidade adiado, estoque por tipo, endereço estruturado de Cliente, Fornecedor mínimo, accordion submenu, soft delete uniforme, nome único seletivo, ficha técnica 1:1, sem histórico de custo, Pratos mostram "Ilimitado".
-- **Passo 1 — Categoria (CRUD completo)** (`2750fba`): model + repository + service + `ListaCategoriasView` + `FormCategoriaView` + accordion na sidebar (`_SUBITENS_CADASTROS` com 8 entradas, `_VIEWS_CADASTROS` frozenset, `_build_item_cadastros`/`_build_subitem_cadastros`/`_build_item_menu_com_trailing`) + 6 testes pytest. Total geral: 14 passed.
-- **Reversão da Decisão 1 — UM volta a ser cadastro fixo** (`c9bd051`): adicionado item 2.1 no ROADMAP com 4 razões (YAGNI, universalidade, conjunto SI suficiente, risco de FK órfã) + escape válvula planejada (Configurações > Sistema em Fase 5+).
-- **Passo 2 — `ListaUnidadesMedidaView` read-only** (`5fc4358`): view sem CRUD, banner cinza informativo, tabela de 2 colunas (NOME, SÍMBOLO), 5 linhas seedadas ordenadas alfabeticamente, rodapé "Total: 5 unidades". 3 edits cirúrgicos em `src/ui/app.py`. ROADMAP ganhou parágrafo final na 2.1 documentando a escape válvula.
-
-### Próximo passo
-
-- **Push do commit `5fc4358`** (Passo 2) para sincronizar com `origin/master` — aguardando autorização do usuário (1 commit ahead).
-- Depois: **Passo 3 da Fase 2 — Fornecedor** (primeiro CRUD novo independente após Categoria). Decisão 6 do ROADMAP cravou os 5 campos mínimos: `nome` (obrigatório, **não-unique**), `cnpj`, `telefone`, `contato`, `observacoes` (todos opcionais) + `ativo: bool`. SEM endereço, SEM email. Estrutura: model + repository + service + lista_view + form_view + testes pytest, ligado ao subitem "Fornecedores" do submenu (atualmente `view_id=None`).
+Nada no momento — Passos 1-3 da Fase 2 fechados (3 de 10). Pronto para iniciar Passo 4 (Cliente).
 
 ---
 
@@ -33,7 +20,7 @@ _Ordem de implementação cravada na Decisão 1 do ROADMAP (dependência de FK).
 
 - [x] **Passo 1**: Cadastro de Categorias (CRUD) — `2750fba`.
 - [x] **Passo 2**: Lista somente-leitura de Unidades de Medida — `5fc4358` (UM continua cadastro fixo, ver ROADMAP 2.1).
-- [ ] (P1) **Passo 3**: Cadastro de Fornecedores (CRUD) — 5 campos mínimos, sem endereço, sem email.
+- [x] **Passo 3**: Cadastro de Fornecedores (CRUD) — 5 campos mínimos, sem endereço, sem email. + Enter como Tab nos forms (mitigação Flet).
 - [ ] (P1) **Passo 4**: Cadastro de Clientes (CRUD) — com endereço estruturado opcional.
 - [ ] (P1) **Passo 5**: Cadastro de Produtos (CRUD) — FK Categoria + UnidadeMedida.
 - [ ] (P1) **Passo 6**: Cadastro de Insumos (CRUD) — FK Categoria + UnidadeMedida, com `estoque_atual`/`estoque_minimo`/`custo_unitario`.
@@ -74,7 +61,7 @@ _Ordem de implementação cravada na Decisão 1 do ROADMAP (dependência de FK).
 
 ## Concluído
 
-### Fase 2 — Cadastros (parcial: Passos 1-2 de 10) (2026-05-22)
+### Fase 2 — Cadastros (parcial: Passos 1-3 de 10) (2026-05-22 → 2026-05-25)
 
 _Em andamento — versão `v0.3.0` ainda não fechada._
 
@@ -82,6 +69,8 @@ _Em andamento — versão `v0.3.0` ainda não fechada._
 - [x] **Passo 1 — Categoria (CRUD completo)** (`2750fba`): model (`id`, `nome` unique, `descricao` opcional, `ativo`, `criado_em`, `atualizado_em`) + `CategoriaRepository` + `CategoriaService` (`NomeDuplicadoError` em conflito) + `ListaCategoriasView` (tabela com avatar+nome, descricao truncada, badge status, ações editar/desativar; busca local; toggle "Mostrar inativas"; estado-vazio com ícone) + `FormCategoriaView` (Nome obrigatório + Descrição multiline opcional; Switch "Ativa" só no editar). **Accordion "Cadastros" na sidebar** emergiu como bônus arquitetural — submenu expansível inline com 8 entradas, helpers `_build_item_cadastros`/`_build_subitem_cadastros`/`_build_item_menu_com_trailing`, auto-expansão ao navegar para view-filha, estado resetado no logout. 6 testes pytest (criar, duplicado, vazio, atualizar com conflito, atualizar mantendo próprio nome, desativar). Total geral: 14 passed.
 - [x] **Decisão 1 revertida — UM volta a ser cadastro fixo** (`c9bd051`): após investigação técnica, identificado que docstring da Fase 0 cravou textualmente _"não criar/remover linhas em runtime"_. Revertida conscientemente. Adicionado item 2.1 no ROADMAP com 4 razões (universalidade, SI suficiente, FK órfã, YAGNI) + escape válvula planejada (Configurações > Sistema em Fase 5+).
 - [x] **Passo 2 — Lista somente-leitura de Unidades de Medida** (`5fc4358`): `ListaUnidadesMedidaView` sem CRUD, banner cinza informativo no topo ("As unidades de medida são padronizadas pelo sistema. Se houver necessidade de unidade customizada, será disponibilizada em Configurações > Sistema em versão futura."), tabela de 2 colunas (NOME, SÍMBOLO), 5 linhas seedadas ordenadas alfabeticamente, rodapé "Total: 5 unidades". 3 edits cirúrgicos em `src/ui/app.py` (import + subitem ligado ao `view_id` + `_VIEWS_CADASTROS` + ramo em `_build_conteudo`). ROADMAP ganhou parágrafo final na 2.1 documentando a escape válvula.
+- [x] **Passo 3 — Fornecedor (CRUD completo) + Enter como Tab nos forms** (2026-05-25): model `Fornecedor` (`id`, `nome` NOT NULL **não-unique**, `cnpj` UNIQUE quando preenchido, `telefone`/`contato`/`observacoes` opcionais, `ativo`, timestamps; sem endereço, sem email) + helper `src/utils/cnpj.py` (`normalizar_cnpj`/`formatar_cnpj`, sem validação de DV) + `FornecedorRepository` (com `buscar_por_cnpj`) + `FornecedorService` (nome obrigatório, CNPJ 14 dígitos quando preenchido, UNIQUE de CNPJ excluindo próprio id, reutiliza `NomeDuplicadoError` com mensagem CNPJ formatado) + `ListaFornecedoresView` (6 colunas: NOME/CNPJ/TELEFONE/CONTATO/STATUS/AÇÕES; busca local em nome OU CNPJ normalizado; estado-vazio adaptativo) + `FormFornecedorView` (5 campos verticais, CNPJ exibido formatado em editar, normalizado no submit; multiline `observacoes` fora da cadeia de Enter). Sidebar: subitem "Fornecedores" agora aponta para view real; `_VIEWS_CADASTROS` e `_form_fornecedor_id` atualizados. 11 testes pytest (TestCriar 5 + TestAtualizar 2 + TestUtilCnpj 4). Total geral: 25 passed.
+  - **Enter como Tab nos forms** (mitigação de bug UX transversal descoberto durante validação visual): Tab key nos forms do shell escapava para a sidebar antes do próximo campo (Flet 0.85.1 não tem `tabindex`/`FocusScope`; `ReadingOrderTraversalPolicy` do Flutter coloca a sidebar primeiro por estar à esquerda no `Row[sidebar, conteúdo]`). Aplicado `on_submit=lambda e, p=próximo: p.focus()` em 4 forms (Login, Usuario CRIAR/EDITAR, Categoria, Fornecedor); último TextField encadeável dispara `_salvar`. Multiline e Dropdown ficam fora da cadeia. Documentado em `CLAUDE.md` ("Pegadinhas Flet 0.85.1") e adiada solução definitiva via `KeyboardListener` para `ROADMAP.md` "Melhorias futuras" (requer POC porque `KeyDownEvent` não expõe `prevent_default()`).
 
 ### Pós-v0.2.0 — Limpeza de débitos transversais (2026-05-22)
 
